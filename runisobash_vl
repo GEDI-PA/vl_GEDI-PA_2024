@@ -1,0 +1,20 @@
+#!/bin/bash
+
+j=0
+
+while getopts l:n: flag 
+do 
+	case "${flag}" in 
+		l) clist=${OPTARG};;
+		n) N=${OPTARG};;
+	esac
+done 
+
+
+
+for country in $clist
+do 
+	Rscript global_process_part1_2024_MAAP_step123.R $country & 
+	((++j==N)) && { j=0; wait; }	
+done
+
