@@ -33,6 +33,7 @@ if (length(args)==0) {
 cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
 f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+f.path.AOIs <- "/projects/my-public-bucket/AOIs/"
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
@@ -65,7 +66,7 @@ if(!file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""
   #gedi_folder <- paste(f.path,"WDPA_gedi_l2a+l2b_clean2/",iso3,"/",sep="")
   gedi_folder <- paste(f.path,"WDPA_gedi_L4A_tiles/",sep="")
   #iso3_tiles <- paste("/projects/my-public-bucket/AOIs/vero_1deg_tiles_",iso3,"/",sep="")
-  tileindex_df <- read.csv(paste("/projects/my-public-bucket/AOIs/vero_1deg_tileindex/tileindex_",iso3,".csv", sep=""))
+  tileindex_df <- read.csv(paste(f.path.AOIs,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep=""))
   iso3_tiles <- tileindex_df$tileindex
   
   GRID.coords <- data.frame()
