@@ -1,7 +1,7 @@
 algorithm_description: Setup control and PA points for matching
 algorithm_name: run_GEDI_PA_setup
 algorithm_version: v1
-build_command: vl_GEDI-PA_2024/build_gedi_pa.sh
+build_command: GEDI-PA/vl_GEDI-PA_2024/build_gedi_pa.sh
 disk_space: 80GB
 docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/r:v3.1.4
 inputs:
@@ -22,4 +22,4 @@ inputs:
     
 queue: maap-dps-worker-32gb
 repository_url: https://github.com/GEDI-PA/vl_GEDI-PA_2024.git
-run_command: vl_GEDI-PA_2024/runisobash_ld.sh
+run_command: GEDI-PA/vl_GEDI-PA_2024/runisobash_ld.sh
