@@ -6,7 +6,7 @@
 options(warn=-1)
 options(dplyr.summarise.inform = FALSE)
 
-packages <- c("sp","rgdal","sf","rgeos","dplyr","plyr","ggplot2","raster","mapview","stringr",
+packages <- c("sp", "terra", "sf","rgeos","dplyr","plyr","ggplot2","raster","mapview","stringr",
               "maptools","gridExtra","lattice","MASS","foreach","optmatch","doParallel",
               "rlang","tidyr","magrittr","viridis","ggmap","spatialEco","bit64",
               "randomForest","modelr","geojsonio","rgeos") #"hrbrthemes","RItools","Hmisc",
@@ -54,12 +54,12 @@ source(paste(f.path,"matching_func_2024.R",sep=""))
 # STEP1. Create 1km sampling grid with points only where GEDI data is available; first check if grid file exist to avoid reprocessing 
 if(!file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))){
   cat("Step 1: Creating 1km sampling grid filter GEDI data for", iso3,"\n")
-  GRID.lats <- raster(file.path(f.path,"EASE2_M01km_lats.tif"))
-  GRID.lons <- raster(file.path(f.path,"EASE2_M01km_lons.tif"))
+  GRID.lats <- rast(file.path(f.path,"EASE2_M01km_lats.tif"))
+  GRID.lons <- rast(file.path(f.path,"EASE2_M01km_lons.tif"))
   GRID.lats.adm   <- crop(GRID.lats, adm_prj)
-  GRID.lats.adm.m <- raster::mask(GRID.lats.adm, adm_prj)
+  GRID.lats.adm.m <- terra::mask(GRID.lats.adm, adm_prj)
   GRID.lons.adm   <- crop(GRID.lons, adm_prj)
-  GRID.lons.adm.m <- raster::mask(GRID.lons.adm, adm_prj)
+  GRID.lons.adm.m <- terra::mask(GRID.lons.adm, adm_prj)
   rm(GRID.lats, GRID.lons, GRID.lats.adm, GRID.lons.adm)
   
   #1.3) extract coordinates of raster cells with valid GEDI data in them
