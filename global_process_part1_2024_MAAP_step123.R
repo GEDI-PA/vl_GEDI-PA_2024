@@ -26,9 +26,7 @@ if (length(args)==0) {
   
   iso3 <- args[1]  #country to process
   gediwk <- args[2]   #the # of weeks GEDI data to use
-  #gediwk <- 24
-  mproc <- as.integer(args[3])  #the number of cores to use for matching
-  #mproc <- 1
+  #mproc <- as.integer(args[3])  #the number of cores to use for matching
 }
 #-------------------------------------------------------------------------------
 
