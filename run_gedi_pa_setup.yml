@@ -3,7 +3,7 @@ algorithm_name: run_GEDI_PA_setup
 algorithm_version: v1
 build_command: vl_GEDI-PA_2024/build_gedi_pa.sh
 disk_space: 80GB
-docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/r:4.0.0
+docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/r:v3.1.4
 inputs:
   config: []
   positional:
