@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir input
+
 j=0
 
 while getopts l:w:n: flag 

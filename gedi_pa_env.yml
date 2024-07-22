@@ -12,3 +12,4 @@ dependencies:
   - r-doParallel
   - r-rlang
   - r-mapview
+  - r-s3

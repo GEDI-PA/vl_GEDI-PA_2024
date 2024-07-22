@@ -43,7 +43,7 @@ ecoreg_key <- read.csv(paste(f.path,"wwf_ecoregions_key.csv",sep=""))
 allPAs <- readRDS(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep=""))
 MCD12Q1 <- raster(paste(f.path,"GEDI_ANCI_PFT_r1000m_EASE2.0_UMD_v1_projection_defined_6933.tif",sep=""))
 projection(MCD12Q1) <- sp::CRS(paste("+init=epsg:",6933,sep=""))
-world_region <- raster(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep=""))
+world_region <- rast(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep=""))
 projection(world_region) <- sp::CRS(paste("+init=epsg:",6933,sep=""))
 adm <- readOGR(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),verbose=F)
 adm_prj <- spTransform(adm, "+init=epsg:6933") 
@@ -66,6 +66,11 @@ if(!file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""
   #gedi_folder <- paste(f.path,"WDPA_gedi_l2a+l2b_clean2/",iso3,"/",sep="")
   gedi_folder <- paste(f.path,"WDPA_gedi_L4A_tiles/",sep="")
   #iso3_tiles <- paste("/projects/my-public-bucket/AOIs/vero_1deg_tiles_",iso3,"/",sep="")
+
+#s3 download code, something like (but probably modify with version for multiple files)
+the_file <- s3_get(s3_uri = "s3://geomarker/testing_downloads/mtcars.rds") s3_get("s3://geomarker/testing_downloads/mtcars.rds") |> readRDS() unlink(the_file)
+ulink(the_file)
+    
   tileindex_df <- read.csv(paste(f.path.AOIs,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep=""))
   iso3_tiles <- tileindex_df$tileindex
   
