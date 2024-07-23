@@ -7,6 +7,9 @@ library("terra")
 library("dplyr")
 library("sf")
 
+# Set CRAN mirror
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
 install.packages("s3")
 library("s3")
 
@@ -123,7 +126,7 @@ source(s3_get(paste(f.path,"matching_func_2024.R",sep="")))
   GRID.for.matching <- SpatialPoints(coords = GRID.coords, proj4string=CRS("+init=epsg:4326"))
   #saveRDS(GRID.for.matching, file = paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))
 #saveRDS(GRID.for.matching, file = paste("/projects/my-public-#bucket/GEDI_global_PA_v2/WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))
-    saveRDS(GRID.for.matching, file = paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep=""))
+#    saveRDS(GRID.for.matching, file = paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep=""))
 #} else if (file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))) {
 #  cat(paste("STEP 1: Grid file exists, no need to process grids for ",iso3, "\n"))
 #}
@@ -220,7 +223,7 @@ GRID.for.matching <- vect(GRID.for.matching)
   
   #saveRDS(d_control, file=paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep="")) 
 #  saveRDS(d_control, file=paste("/projects/my-public-#bucket/GEDI_global_PA_v2/WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))
-    saveRDS(d_control, file = paste("output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep=""))
+    saveRDS(d_control, file = paste("/output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep=""))
   
 #} else if (file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
 #  cat("Step 2.1: preppred control dataset already exists for", iso3, "no need for reprocessing\n")
@@ -315,7 +318,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       #saveRDS(d_pa, file = paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/","prepped_pa_",
       #                           testPA$WDPAID,"_wk",gediwk,".RDS", sep=""))
 #      saveRDS(d_pa, file = paste("/projects/my-public-#bucket/GEDI_global_PA_v2/WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/","prepped_pa_", testPA$WDPAID,"_wk",gediwk,".RDS", #sep=""))
-      saveRDS(d_pa, file = paste("output/prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep=""))
+      saveRDS(d_pa, file = paste("/output/prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep=""))
     }
   }
 #} else if (length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""),pattern = paste(gediwk,".RDS",sep="")))==length(allPAs)){

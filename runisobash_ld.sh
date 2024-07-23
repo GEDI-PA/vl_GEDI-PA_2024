@@ -5,9 +5,9 @@ j=0
 while getopts l:w:n: flag 
 do 
 	case "${flag}" in 
-		l) clist=${1};;
-		w) wk=${2};;
-		n) N=${3};;
+		l) clist=${OPTARG};;
+		w) wk=${OPTARG};;
+		n) N=${OPTARG};;
 	esac
 done 
 
@@ -18,3 +18,6 @@ do
 	Rscript global_process_part1_2024_MAAP_step123.R $country $wk & 
 	((++j==N)) && { j=0; wait; }	
 done
+
+wait
+
