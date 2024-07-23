@@ -1,6 +1,7 @@
 #!/bin/bash
 
-#mkdir input
+mkdir input
+mkdir output
 
 j=0
 
