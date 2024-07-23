@@ -3,16 +3,9 @@
 # This global processing script is derived from the global processing notebook 
 #the input can be the iso3 code (3-character) for one or multiple countries 
 
-options(warn=-1)
-options(dplyr.summarise.inform = FALSE)
-
-packages <- c("terra","dplyr","sf") #,"sp", "rgeos","plyr","ggplot2","raster","mapview","stringr",
-              #"maptools","gridExtra","lattice","MASS","foreach","optmatch","doParallel",
-              #"rlang","tidyr","magrittr","viridis","ggmap","spatialEco","bit64",
-              #"randomForest","modelr","geojsonio","rgeos") #"hrbrthemes","RItools","Hmisc",
-package.check <- lapply(packages, FUN = function(x) {
-  suppressPackageStartupMessages(library(x, character.only = TRUE))
-})
+library("terra")
+library("dplyr")
+library("sf")
 
 #To test, we define the variables manually. For final version, run the commented out section below
 #gediwk <- 24
@@ -162,7 +155,7 @@ if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_con
     } 
     # print(length(GRID.pts.nonPA))
   }
-  nonPA_xy  <- coordinates(GRID.pts.nonPA)
+  nonPA_xy  <- geom(GRID.pts.nonPA)[,c("x","y")]
   colnames(nonPA_xy)  <- c("x","y")
   #nonPA_spdf  <- tryCatch(SpatialPointsDataFrame(nonPA_xy, data=data.frame(nonPA_xy),proj4string=CRS("+init=epsg:4326")),
   nonPA_spdf  <- tryCatch(vect(nonPA_xy, crs="epsg:4326"),      
@@ -174,14 +167,18 @@ if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_con
     
   for (j in 1:length(matching_tifs)){
     #ras <- raster(paste(f.path, "WDPA_input_vars_iso3/",iso3,"/",matching_tifs[j],".tif", sep=""))
-    ras <- ras(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
+    ras <- rast(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
     print(matching_tifs[j])
-    ras_ex <- extract(ras, nonPA_spdf@coords, method="simple", factors=FALSE)
+    ras_ex <- extract(ras, nonPA_spdf, method="simple", factors=FALSE)
     nm <- names(ras)
-    nonPA_spdf <- cbind(nonPA_spdf, ras_ex)
-    names(nonPA_spdf)[j+2] <- matching_tifs[j]
-    
+    #nonPA_spdf <- cbind(nonPA_spdf, ras_ex[,matching_tifs[j]])
+    #names(nonPA_spdf)[j+2] <- matching_tifs[j]
+    nonPA_spdf$nm <- ras_ex[, matching_tifs[j]]
+    names(nonPA_spdf)[j] <- matching_tifs[j]
   }
+  nonPA_spdf$x <- geom(nonPA_spdf)[,"x"]
+  nonPA_spdf$y <- geom(nonPA_spdf)[,"y"]
+  
   d_control <- nonPA_spdf
   d_control$status <- as.logical("FALSE")
   names(d_control) <- make.names(names(d_control), allow_ = FALSE)
@@ -235,32 +232,39 @@ if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_con
 
 cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
 GRID.for.matching <- readRDS(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep="")) 
+GRID.for.matching <- vect(GRID.for.matching)
 
 if(length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""),pattern = paste(gediwk,".RDS",sep="")))==0){
   if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))){
-    dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))}
+      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))}
   cat("Step 3.1: Processing prepped PA treatment dataset for ", iso3, "\n")
   for(i in 1:length(allPAs)){
     cat(iso3, i, "out of ", length(allPAs), "\n")
-    testPA <- allPAs[i,]
-    testPA <- spTransform(testPA, "+init=epsg:4326")
+    testPA <- vect(allPAs[i,])
+    testPA <- project(testPA, "epsg:4326")
     GRID.pts.testPA <- GRID.for.matching[testPA]
     
     if(length(GRID.pts.testPA)>0){
-      testPA_xy <- coordinates(GRID.pts.testPA)
+      #testPA_xy <- coordinates(GRID.pts.testPA)
+      testPA_xy <- geom(GRID.pts.testPA)[,c("x","y")]
       colnames(testPA_xy) <- c("x","y")
-      testPA_spdf <- SpatialPointsDataFrame(testPA_xy, data=data.frame(testPA_xy),
-                                            proj4string=CRS("+init=epsg:4326"))
-      for (j in 1:length(matching_tifs)){
+      #testPA_spdf <- SpatialPointsDataFrame(testPA_xy, data=data.frame(testPA_xy), proj4string=CRS("+init=epsg:4326"))
+      testPA_spdf  <- vect(testPA_xy, crs="epsg:4326")
+                              
+        for (j in 1:length(matching_tifs)){
         #ras <- raster(paste(f.path, "WDPA_input_vars_iso3/",iso3,"/",matching_tifs[j],".tif", sep=""))
-        ras <- raster(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
+        ras <- rast(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
         ras <- crop(ras, testPA)
-        ras_ex <- raster::extract(ras, testPA_spdf@coords, method="simple", factors=F)
+        ras_ex <- extract(ras, testPA_spdf, method="simple", factors=F)
         nm <- names(ras)
-        testPA_spdf <- cbind(testPA_spdf, ras_ex)
-        names(testPA_spdf)[j+2] <- matching_tifs[j]
-        
-      }
+        #testPA_spdf <- cbind(testPA_spdf, ras_ex[,matching_tifs[j]])
+        #names(testPA_spdf)[j+2] <- matching_tifs[j]
+        testPA_spdf$nm <- ras_ex[, matching_tifs[j]]
+        names(testPA_spdf)[j] <- matching_tifs[j]
+  }
+    testPA_spdf$x <- geom(testPA_spdf)[,"x"]
+    testPA_spdf$y <- geom(testPA_spdf)[,"y"]
+      
       d_pa <- testPA_spdf
       d_pa$status <- as.logical("TRUE")
       d_pa$DESIG_ENG <- testPA$DESIG_ENG
@@ -298,11 +302,11 @@ if(length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",
                                            "l6_other land/bare",
                                            "l7_water"))
       d_pa$wwfbiom <- factor(d_pa$wwfbiom,
-                             levels = as.vector(unique(ecoreg_key[,"BIOME"])),
-                             labels = as.vector(unique(ecoreg_key[,"BIOME_NAME"])))
+                          levels = as.vector(unique(ecoreg_key[,"BIOME"])),
+                          labels = as.vector(unique(ecoreg_key[,"BIOME_NAME"])))
       d_pa$wwfecoreg <- factor(d_pa$wwfecoreg,
-                               levels = as.vector(ecoreg_key[,"ECO_ID"]),
-                               labels = as.vector(ecoreg_key[,"ECO_NAME"]))
+                            levels = as.vector(ecoreg_key[,"ECO_ID"]),
+                            labels = as.vector(ecoreg_key[,"ECO_NAME"]))
       
       d_pa$UID <- seq.int(nrow(d_pa))
       saveRDS(d_pa, file = paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/","prepped_pa_",

@@ -3,13 +3,6 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - r-spatialEco=1.3.2
-  - r-optmatch
-  - r-ggmap
-  - r-hrbrthemes
-  - r-Hmisc
-  - r-ritools
-  - r-doParallel
-  - r-rlang
-  - r-mapview
-  - r-s3
+  - r-terra
+  - r-dplyr
+  - r-sf
