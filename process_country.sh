@@ -47,7 +47,7 @@ if [ -z "${iso3}" ] || [ -z "${gediwk}" ]; then
 fi
 
 # Set the R script path
-R_SCRIPT="path_to_your_script.R"
+R_SCRIPT="global_process_part1_2024_MAAP_step123.R"
 
 # Execute the R script with the provided ISO3 country code and GEDI week
-Rscript global_process_part1_2024_MAAP_step123.R $iso3 $gediwk
+Rscript $R_SCRIPT $iso3 $gediwk
