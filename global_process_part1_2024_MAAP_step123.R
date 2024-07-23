@@ -6,10 +6,10 @@
 options(warn=-1)
 options(dplyr.summarise.inform = FALSE)
 
-packages <- c("sp", "terra", "sf","rgeos","dplyr","plyr","ggplot2","raster","mapview","stringr",
-              "maptools","gridExtra","lattice","MASS","foreach","optmatch","doParallel",
-              "rlang","tidyr","magrittr","viridis","ggmap","spatialEco","bit64",
-              "randomForest","modelr","geojsonio","rgeos") #"hrbrthemes","RItools","Hmisc",
+packages <- c("terra","dplyr","sf") #,"sp", "rgeos","plyr","ggplot2","raster","mapview","stringr",
+              #"maptools","gridExtra","lattice","MASS","foreach","optmatch","doParallel",
+              #"rlang","tidyr","magrittr","viridis","ggmap","spatialEco","bit64",
+              #"randomForest","modelr","geojsonio","rgeos") #"hrbrthemes","RItools","Hmisc",
 package.check <- lapply(packages, FUN = function(x) {
   suppressPackageStartupMessages(library(x, character.only = TRUE))
 })
@@ -33,20 +33,29 @@ if (length(args)==0) {
 cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
 f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
-f.path.AOIs <- "/projects/my-public-bucket/AOIs/"
+#f.path <- "https://maap-ops-workspace.s3.us-west-2.amazonaws.com/shared/leitoldv/GEDI_global_PA_v2/"
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
                    "wc_tmax_1990-1999","wc_tavg_1990-1999","wc_tmin_1990-1999" )
 
 ecoreg_key <- read.csv(paste(f.path,"wwf_ecoregions_key.csv",sep=""))
+
 allPAs <- readRDS(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep=""))
-MCD12Q1 <- raster(paste(f.path,"GEDI_ANCI_PFT_r1000m_EASE2.0_UMD_v1_projection_defined_6933.tif",sep=""))
-projection(MCD12Q1) <- sp::CRS(paste("+init=epsg:",6933,sep=""))
+
+MCD12Q1 <- rast(paste(f.path,"GEDI_ANCI_PFT_r1000m_EASE2.0_UMD_v1_projection_defined_6933.tif",sep=""))
+#projection(MCD12Q1) <- sp::CRS(paste("+init=epsg:",6933,sep=""))
+crs(MCD12Q1)  <- "epsg:6933"
+
 world_region <- rast(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep=""))
-projection(world_region) <- sp::CRS(paste("+init=epsg:",6933,sep=""))
-adm <- readOGR(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),verbose=F)
-adm_prj <- spTransform(adm, "+init=epsg:6933") 
+#projection(world_region) <- sp::CRS(paste("+init=epsg:",6933,sep=""))
+crs(world_region)  <- "epsg:6933"
+
+#adm <- readOGR(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),verbose=F)
+#adm_prj <- spTransform(adm, "+init=epsg:6933")
+adm <- vect(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""))
+adm_prj <- project(adm, "epsg:6933")
+
 load(paste(f.path,"rf_noclimate.RData",sep=""))
 source(paste(f.path,"matching_func.R",sep=""))
 source(paste(f.path,"matching_func_2024.R",sep=""))
@@ -57,23 +66,24 @@ if(!file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""
   GRID.lats <- rast(file.path(f.path,"EASE2_M01km_lats.tif"))
   GRID.lons <- rast(file.path(f.path,"EASE2_M01km_lons.tif"))
   GRID.lats.adm   <- crop(GRID.lats, adm_prj)
-  GRID.lats.adm.m <- terra::mask(GRID.lats.adm, adm_prj)
+  GRID.lats.adm.m <- mask(GRID.lats.adm, adm_prj)
   GRID.lons.adm   <- crop(GRID.lons, adm_prj)
-  GRID.lons.adm.m <- terra::mask(GRID.lons.adm, adm_prj)
+  GRID.lons.adm.m <- mask(GRID.lons.adm, adm_prj)
   rm(GRID.lats, GRID.lons, GRID.lats.adm, GRID.lons.adm)
   
   #1.3) extract coordinates of raster cells with valid GEDI data in them
   #gedi_folder <- paste(f.path,"WDPA_gedi_l2a+l2b_clean2/",iso3,"/",sep="")
   gedi_folder <- paste(f.path,"WDPA_gedi_L4A_tiles/",sep="")
   #iso3_tiles <- paste("/projects/my-public-bucket/AOIs/vero_1deg_tiles_",iso3,"/",sep="")
+  #tileindex_df <- read.csv(paste("/projects/my-public-bucket/AOIs/vero_1deg_tileindex/tileindex_",iso3,".csv", sep=""))
 
-#s3 download code, something like (but probably modify with version for multiple files)
-the_file <- s3_get(s3_uri = "s3://geomarker/testing_downloads/mtcars.rds") s3_get("s3://geomarker/testing_downloads/mtcars.rds") |> readRDS() unlink(the_file)
-ulink(the_file)
+#######s3 download code, something like (but probably modify with version for multiple files)
+#the_file <- s3_get(s3_uri = "s3://geomarker/testing_downloads/mtcars.rds") s3_get("s3://geomarker/testing_downloads/mtcars.rds") |> readRDS() unlink(the_file)
+
     
-  tileindex_df <- read.csv(paste(f.path.AOIs,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep=""))
-  iso3_tiles <- tileindex_df$tileindex
-  
+  tileindex_df <- read.csv(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep=""))
+  iso3_tiles <- tileindex_df$tileindexiso3_tiles <- tileindex_df$tileindex
+    
   GRID.coords <- data.frame()
   #for(i in 1:length(dir(gedi_folder))){
   #for(i in 1:length(dir(iso3_tiles))){
@@ -83,35 +93,39 @@ ulink(the_file)
     iso3_tile_in <- paste("tile_num_",iso3_tiles[i],sep="")
     
     if(!file.exists(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))){
-      print(paste(iso3_tile_in," does not exist",sep=""))
-    } else {
-      #print(paste(iso3_tile_in," processing",sep=""))
-      #gedi_data <- read.csv(list.files(gedi_folder,full.names=TRUE)[i]) %>%
-      gedi_data <- read_sf(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""), int64_as_string = TRUE) %>%
-        dplyr::select(lon_lowestmode,lat_lowestmode)
-      gedi_data <- gedi_data %>% st_drop_geometry()
-      gedi_pts  <- SpatialPoints(coords=gedi_data[,c("lon_lowestmode","lat_lowestmode")],
-                                 proj4string=CRS("+init=epsg:4326"))
-      gedi_pts_prj <- spTransform(gedi_pts, "+init=epsg:6933")
-      
-      gcount_ras <- rasterize(coordinates(gedi_pts_prj),GRID.lons.adm.m , fun="count",background=NA)
-      names(gcount_ras) <- "gshot_counts"
-      pxid <- raster::extract(gcount_ras,  gedi_pts_prj)
-      gedi_pts_prj %>% 
-        SpatialPointsDataFrame(., data=data.frame(pxid)) ->gedi_pts_prj_sp
-      gedi_pts_prj_sp$pxid[is.na(gedi_pts_prj_sp$pxid)] <- 0
-      gedi_pts_prj_sp[gedi_pts_prj_sp$pxid>5,]->gedi_pts_prj_filtered  #change the numeric threshold to filter with a different min # of GEDI shots in each 1km cell
-      
-      GRID.lons.overlap <- GRID.lons.adm.m[gedi_pts_prj_filtered]
-      GRID.lats.overlap <- GRID.lats.adm.m[gedi_pts_prj_filtered]
-      
-      x.overlap <- GRID.lons.overlap[!is.na(GRID.lons.overlap)]
-      y.overlap <- GRID.lats.overlap[!is.na(GRID.lats.overlap)]
-      
-      xy.overlap <- cbind(x.overlap,y.overlap)
-      xy.overlap.clean <- unique(xy.overlap)
-      
-      GRID.coords <- rbind(GRID.coords, xy.overlap.clean)
+        print(paste(iso3_tile_in," does not exist",sep=""))
+        } else {
+        print(paste(iso3_tile_in," processing",sep=""))
+    #gedi_data <- read.csv(list.files(gedi_folder,full.names=TRUE)[i]) %>%
+    gedi_data <- read_sf(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""), int64_as_string = TRUE) %>%
+      dplyr::select(lon_lowestmode,lat_lowestmode)
+    gedi_data <- gedi_data %>% st_drop_geometry()
+#    gedi_pts  <- SpatialPoints(coords=gedi_data[,c("lon_lowestmode","lat_lowestmode")],
+#                               proj4string=CRS("+init=epsg:4326"))
+#    gedi_pts_prj <- spTransform(gedi_pts, "+init=epsg:6933")
+    gedi_pts  <- vect(gedi_data, geom=c("lon_lowestmode","lat_lowestmode"), crs="epsg:4326", keepgeom=FALSE)        
+    gedi_pts_prj <- project(gedi_pts, "epsg:6933")
+        
+    gcount_ras <- rasterize(geom(gedi_pts_prj)[,c("x","y")], GRID.lons.adm.m, fun="count", background=NA)
+    names(gcount_ras) <- "gshot_counts"
+    #pxid <- raster::extract(gcount_ras,  gedi_pts_prj)
+    pxid <- extract(gcount_ras, gedi_pts_prj)
+    #gedi_pts_prj_sp <- gedi_pts_prj %>% SpatialPointsDataFrame(., data=data.frame(pxid))
+    gedi_pts_prj$pxid <- pxid[,"gshot_counts"]
+    gedi_pts_prj_sp <- gedi_pts_prj    
+    gedi_pts_prj_sp$pxid[is.na(gedi_pts_prj_sp$pxid)] <- 0
+    gedi_pts_prj_filtered <- gedi_pts_prj_sp[gedi_pts_prj_sp$pxid >= 1,]  #change the numeric threshold to filter with a different min # of GEDI shots in each 1km cell
+    
+    GRID.lons.overlap <- GRID.lons.adm.m[gedi_pts_prj_filtered]
+    GRID.lats.overlap <- GRID.lats.adm.m[gedi_pts_prj_filtered]
+    
+    x.overlap <- GRID.lons.overlap[!is.na(GRID.lons.overlap)]
+    y.overlap <- GRID.lats.overlap[!is.na(GRID.lats.overlap)]
+    
+    xy.overlap <- cbind(x.overlap,y.overlap)
+    xy.overlap.clean <- unique(xy.overlap)
+    
+    GRID.coords <- rbind(GRID.coords, xy.overlap.clean)
     }
   }
   GRID.for.matching <- SpatialPoints(coords = GRID.coords, proj4string=CRS("+init=epsg:4326"))
@@ -125,39 +139,44 @@ ulink(the_file)
 # STEP2. Clip sampling grid to nonPA areas within country & sample raster layers on nonPA grid
 cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
 GRID.for.matching <- readRDS(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep="")) 
-#print(GRID.for.matching)
+GRID.for.matching <- vect(GRID.for.matching)
 
 if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
   if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))){
-    dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))}    
+      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))}    
   cat("Step 2.1: Preparing control dataset for", iso3, "\n")
-  GRID.pts.nonPA <- GRID.for.matching %>% spTransform(., "+init=epsg:4326")
+  #GRID.pts.nonPA <- GRID.for.matching %>% spTransform(., "+init=epsg:4326")
+  GRID.pts.nonPA <- project(GRID.for.matching, "epsg:4326")
   for(i in 1:length(allPAs)){
-    PA          <- allPAs[i,]
-    PA_prj      <- spTransform(PA, "+init=epsg:6933")
-    PA_prj_buff <- gBuffer(PA_prj, width = 10000) #10km buffer
-    PA2         <- spTransform(PA_prj_buff, "+init=epsg:4326")
+    PA          <- vect(allPAs[i,])
+    PA_prj      <- project(PA, "epsg:6933")
+    #PA_prj_buff <- gBuffer(PA_prj, width = 10000) #10km buffer
+    PA_prj_buff <- buffer(PA_prj, width = 10000)
+    PA2         <- project(PA_prj_buff, "epsg:4326")
     overlap     <- GRID.pts.nonPA[PA2]
     if(length(overlap)>0){
       GRID.pts.nonPA0 <- st_difference(sf::st_as_sf(GRID.pts.nonPA), sf::st_as_sf(PA2)) ##remove pts inside poly
-      GRID.pts.nonPA <- as(GRID.pts.nonPA0$geometry,'Spatial') %>% spTransform(., "+init=epsg:4326")
+      #GRID.pts.nonPA <- as(GRID.pts.nonPA0$geometry,'Spatial') %>% spTransform(., "+init=epsg:4326")
+      GRID.pts.nonPA <- vect(GRID.pts.nonPA0$geometry)
+      GRID.pts.nonPA <- project(GRID.pts.nonPA, "epsg:4326")
     } 
     # print(length(GRID.pts.nonPA))
   }
   nonPA_xy  <- coordinates(GRID.pts.nonPA)
   colnames(nonPA_xy)  <- c("x","y")
-  nonPA_spdf  <- tryCatch(SpatialPointsDataFrame(nonPA_xy, data=data.frame(nonPA_xy),
-                                                 proj4string=CRS("+init=epsg:4326")),
+  #nonPA_spdf  <- tryCatch(SpatialPointsDataFrame(nonPA_xy, data=data.frame(nonPA_xy),proj4string=CRS("+init=epsg:4326")),
+  nonPA_spdf  <- tryCatch(vect(nonPA_xy, crs="epsg:4326"),      
                           error=function(cond){
                             cat("Country too samll, after buffer no grid left, so quit processing country", iso3, dim(nonPA_xy),"\n")
                             writeLines("Country too samll, after buffer no grid left", paste(f.path,"WDPA_log/",iso3,"_log_control.txt", sep=""))
                             return(quit(save="no"))})
-  
+    
+    
   for (j in 1:length(matching_tifs)){
     #ras <- raster(paste(f.path, "WDPA_input_vars_iso3/",iso3,"/",matching_tifs[j],".tif", sep=""))
-    ras <- raster(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
+    ras <- ras(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
     print(matching_tifs[j])
-    ras_ex <- raster::extract(ras, nonPA_spdf@coords, method="simple", factors=FALSE)
+    ras_ex <- extract(ras, nonPA_spdf@coords, method="simple", factors=FALSE)
     nm <- names(ras)
     nonPA_spdf <- cbind(nonPA_spdf, ras_ex)
     names(nonPA_spdf)[j+2] <- matching_tifs[j]
@@ -193,11 +212,11 @@ if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_con
                                             "l6_other land/bare",
                                             "l7_water"))
   d_control$wwfbiom <- factor(d_control$wwfbiom,
-                              levels = as.vector(unique(ecoreg_key[,"BIOME"])),
-                              labels = as.vector(unique(ecoreg_key[,"BIOME_NAME"])))
+                           levels = as.vector(unique(ecoreg_key[,"BIOME"])),
+                           labels = as.vector(unique(ecoreg_key[,"BIOME_NAME"])))
   d_control$wwfecoreg <- factor(d_control$wwfecoreg,
-                                levels = as.vector(ecoreg_key[,"ECO_ID"]),
-                                labels = as.vector(ecoreg_key[,"ECO_NAME"]))
+                             levels = as.vector(ecoreg_key[,"ECO_ID"]),
+                             labels = as.vector(ecoreg_key[,"ECO_NAME"]))
   
   
   d_control$UID <-  seq.int(nrow(d_control))
