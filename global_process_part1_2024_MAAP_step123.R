@@ -8,9 +8,8 @@ library("dplyr")
 library("sf")
 
 # Set CRAN mirror
-options(repos = c(CRAN = "https://cran.r-project.org"))
-
-install.packages("s3")
+#options(repos = c(CRAN = "https://cran.r-project.org"))
+#install.packages("s3")
 library("s3")
 
 #To test, we define the variables manually. For final version, run the commented out section below
