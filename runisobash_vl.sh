@@ -1,4 +1,5 @@
 #!/bin/bash
+basedir=$( cd "$(dirname "$0")" ; pwd -P )
 
 # Initialize variables
 country=""
@@ -11,5 +12,4 @@ do
 	esac
 done
 
-# Run the R script for the specified country
-Rscript global_process_part1_2024_MAAP_step123.R $country
+Rscript ${basedir}/global_process_part1_2024_MAAP_step123.R $country
