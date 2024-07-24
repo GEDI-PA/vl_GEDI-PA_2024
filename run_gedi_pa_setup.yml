@@ -1,25 +1,21 @@
-algorithm_description: Setup control and PA points for matching
-algorithm_name: run_GEDI_PA_setup
+algorithm_description: prepare control and PA points for matching
+algorithm_name: run_gedi_pa_prepping
 algorithm_version: v1
 build_command: GEDI-PA/vl_GEDI-PA_2024/build_gedi_pa.sh
 disk_space: 80GB
-docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/r:v3.1.4
+docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/r:v4.0.0
 inputs:
   config: []
   positional:
   - default: ''
-    description: iso country list
-    name: clist
+    description: iso country code
+    name: c
     required: true
   - default: ''
-    description: gedi version
-    name: wk
-    required: true
-  - default: ''
-    description: number of processes
-    name: N
+    description: gediwk data version
+    name: w
     required: true
     
 queue: maap-dps-worker-32gb
 repository_url: https://github.com/GEDI-PA/vl_GEDI-PA_2024.git
-run_command: GEDI-PA/vl_GEDI-PA_2024/runisobash_ld.sh
+run_command: GEDI-PA/vl_GEDI-PA_2024/runisobash_vl.sh

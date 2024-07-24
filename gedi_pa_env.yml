@@ -6,6 +6,5 @@ dependencies:
   - r-terra
   - r-dplyr
   - r-sf
-  - r-sp
-  - r-s3
+
   
