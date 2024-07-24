@@ -223,7 +223,7 @@ GRID.for.matching <- vect(GRID.for.matching)
   
   #saveRDS(d_control, file=paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep="")) 
 #  saveRDS(d_control, file=paste("/projects/my-public-#bucket/GEDI_global_PA_v2/WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))
-    saveRDS(d_control, file = paste("/output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep=""))
+    saveRDS(d_control, file = paste("output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep=""))
   
 #} else if (file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
 #  cat("Step 2.1: preppred control dataset already exists for", iso3, "no need for reprocessing\n")
@@ -318,7 +318,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       #saveRDS(d_pa, file = paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/","prepped_pa_",
       #                           testPA$WDPAID,"_wk",gediwk,".RDS", sep=""))
 #      saveRDS(d_pa, file = paste("/projects/my-public-#bucket/GEDI_global_PA_v2/WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/","prepped_pa_", testPA$WDPAID,"_wk",gediwk,".RDS", #sep=""))
-      saveRDS(d_pa, file = paste("/output/prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep=""))
+      saveRDS(d_pa, file = paste("output/prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep=""))
     }
   }
 #} else if (length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""),pattern = paste(gediwk,".RDS",sep="")))==length(allPAs)){
