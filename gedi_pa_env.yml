@@ -6,6 +6,31 @@ dependencies:
   - r-terra
   - r-dplyr
   - r-sf
+  - r-sys
+  - r-askpass
+  - r-pkgbuild
+  - r-rprojroot
+  - r-diffobj
+  - r-rematch2
   - r-curl
-
+  - r-jsonlite
+  - r-mime
+  - r-openssl
+  - r-base64enc
+  - r-brio
+  - r-callr
+  - r-desc
+  - r-evaluate
+  - r-pkgload
+  - r-praise
+  - r-processx
+  - r-ps
+  - r-waldo
+  - r-prettyunits
+  - r-fs
+  - r-httr
+  - r-purrr
+  - r-aws.signature
+  - r-digest
+  - r-testthat
   
