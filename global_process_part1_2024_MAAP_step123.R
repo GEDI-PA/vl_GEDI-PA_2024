@@ -6,9 +6,6 @@
 library("terra")
 library("dplyr")
 library("sf")
-
-# Set CRAN mirror
-#options(repos = c(CRAN = "https://cran.r-project.org"))
 #install.packages("s3")
 library("s3")
 
