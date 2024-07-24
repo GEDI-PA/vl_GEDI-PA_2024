@@ -5,9 +5,9 @@ j=0
 while getopts l:w:n: flag 
 do 
 	case "${flag}" in 
-		l) clist=${OPTARG};;
-		w) wk=${OPTARG};;
-		n) N=${OPTARG};;
+		l) clist=${1};;
+		w) wk=${2};;
+		n) N=${3};;
 	esac
 done 
 
