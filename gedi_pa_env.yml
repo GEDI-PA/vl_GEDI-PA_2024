@@ -6,5 +6,6 @@ dependencies:
   - r-terra
   - r-dplyr
   - r-sf
+  - r-curl
 
   
