@@ -12,4 +12,5 @@ do
 	esac
 done
 
-Rscript ${basedir}/global_process_part1_2024_MAAP_step123.R $country
+#Rscript ${basedir}/global_process_part1_2024_MAAP_step123.R $country
+conda run --no-capture-output --name gedi_pa_env Rscript ${basedir}/global_process_part1_2024_MAAP_step123.R $country
