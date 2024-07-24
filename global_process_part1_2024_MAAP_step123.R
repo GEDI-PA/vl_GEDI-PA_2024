@@ -15,7 +15,8 @@ library("s3")
 
 #To test, we define the variables manually. For final version, run the commented out section below
 #iso3 <-"ECU"
-#gediwk <- 24
+gediwk <- 24
+
 #-------------------------------------------------------------------------------
 args = commandArgs(trailingOnly=TRUE)
 if (length(args)==0) {
@@ -23,7 +24,7 @@ if (length(args)==0) {
 } else if (length(args)>=1) {
   
   iso3 <- args[1]  #country to process
-  gediwk <- args[2]   #the # of weeks GEDI data to use
+  #gediwk <- args[2]   #the # of weeks GEDI data to use
   #mproc <- as.integer(args[3])  #the number of cores to use for matching
 }
 #-------------------------------------------------------------------------------

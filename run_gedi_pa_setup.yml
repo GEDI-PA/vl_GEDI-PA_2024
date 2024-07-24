@@ -11,10 +11,6 @@ inputs:
     description: iso country code
     name: c
     required: true
-  - default: ''
-    description: gediwk data version
-    name: w
-    required: true
     
 queue: maap-dps-worker-32gb
 repository_url: https://github.com/GEDI-PA/vl_GEDI-PA_2024.git
