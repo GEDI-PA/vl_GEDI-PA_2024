@@ -112,7 +112,7 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   #GRID.for.matching <- SpatialPoints(coords = GRID.coords, proj4string=CRS("+init=epsg:4326"))
   GRID.for.matching <- vect(GRID.coords, geom=c("x.overlap","y.overlap"), crs = "epsg:4326")
 
-  filename_out <- paste(iso3,"_grid_wk",gediwk,".RDS", sep="")
+  filename_out <- paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep="")
   saveRDS(GRID.for.matching, file = filename_out)
 #} else if (file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))) {
 #  cat(paste("STEP 1: Grid file exists, no need to process grids for ",iso3, "\n"))
@@ -199,7 +199,7 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
   
   d_control$UID <-  seq.int(nrow(d_control))
   
-  filename_out <- paste(iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
+  filename_out <- paste("output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
   saveRDS(d_control, file = filename_out)  
 #} else if (file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
 #  cat("Step 2.1: preppred control dataset already exists for", iso3, "no need for reprocessing\n")
@@ -286,7 +286,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       
       d_pa$UID <- seq.int(nrow(d_pa))
 
-      filename_out <- paste("_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
+      filename_out <- paste("output/",iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
       saveRDS(d_pa, file = filename_out)  
     }
   }
