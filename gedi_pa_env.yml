@@ -6,6 +6,7 @@ dependencies:
   - r-terra
   - r-dplyr
   - r-sf
+  - r-sp
   - r-sys
   - r-askpass
   - r-pkgbuild
