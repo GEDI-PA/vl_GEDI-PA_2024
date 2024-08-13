@@ -17,5 +17,5 @@ country=${1}
 #output_filename=${2}
 
 #Rscript ${basedir}/global_process_part1_2024_MAAP_step123.R $country
-conda run --no-capture-output --name gedi_pa_env Rscript ${basedir}/global_process_part1_2024_MAAP_step123.R $country
+conda run --no-capture-output --name gedi_pa_env Rscript ${basedir}/global_process_part1_2024_MAAP_step1234.R $country
 #--output_file output/${output_filename}
