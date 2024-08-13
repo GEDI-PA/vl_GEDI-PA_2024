@@ -45,7 +45,7 @@ cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
-f.path2 <- "s3://maap-ops-workspace/my-public-bucket/abarenblitt/GEDI_global_PA_v2/"
+f.path2 <- "s3://maap-ops-workspace/my-public-bucket/GEDI_global_PA_v2/"
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
@@ -62,7 +62,7 @@ crs(MCD12Q1)  <- "epsg:6933"
 world_region <- rast(s3_get(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep="")))
 crs(world_region)  <- "epsg:6933"
 
-s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp")
+s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="")
 
 # s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
 #               paste(f.path,"WDPA_countries/shp/",iso3,".shx",sep=""),
