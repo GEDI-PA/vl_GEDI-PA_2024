@@ -99,7 +99,7 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   
   #1.3) extract coordinates of raster cells with valid GEDI data in them
   gedi_folder <- paste("~/my-public-bucket/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep="")
-  tileindex_df <- read.csv(s3_get(paste(f.path2,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
+  tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
   iso3_tiles <- tileindex_df$tileindexiso3_tiles <- tileindex_df$tileindex
     
   GRID.coords <- data.frame()
@@ -112,8 +112,7 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
     #if(!file.exists(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))){
     #    print(paste(iso3_tile_in," does not exist",sep=""))
     #    } else {
-    print(paste(iso3_tile_in," processing",sep=""))
-    gedi_data <- read_sf(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep="")), int64_as_string = TRUE) %>%
+    gedi_data <- read_sf(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep="")) %>%
       dplyr::select(lon_lowestmode,lat_lowestmode)
     gedi_data <- gedi_data %>% st_drop_geometry()
     gedi_pts  <- vect(gedi_data, geom=c("lon_lowestmode","lat_lowestmode"), crs="epsg:4326", keepgeom=FALSE)        
@@ -345,22 +344,25 @@ foreach_rbind <- function(d1, d2) {
 }
 
 cat("Step 4: Performing matching for", iso3,"\n")
-d_control_local <- readRDS(file=paste(f.path2,"WDPA_grids/",iso3,"_prepped_control_wk",gediwk,".RDS", sep=""))
+d_control_local <- readRDS(s3_get(paste(f.path2,"WDPA_grids/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")))
 d_control_local <-d_control_local[complete.cases(d_control_local), ]  #filter away non-complete cases w/ NA in control set
 
-if(!dir.exists(paste("WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){
+
+f.path3<- "~/Global_Process_Output/WDPA_matching_results/"
+
+if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
   # cat("Matching result dir does not EXISTS\n")
-  dir.create(file.path(paste("WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
-  d_PAs <- list.files(paste("WDPA_matching_results/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
-} else if (dir.exists(paste("WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
+  dir.create(file.path(paste(f.path3,iso3,"_wk",gediwk,"/",sep="")))
+  d_PAs <- list.files(paste(f.path3,iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+} else if (dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
   pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
-  matched_PAid <- list.files(paste("WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""), full.names = FALSE, pattern=paste0(pattern1, collapse="|"))%>%
+  matched_PAid <- list.files(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""), full.names = FALSE, pattern=paste0(pattern1, collapse="|"))%>%
     readr::parse_number() %>% unique()
-  d_PAs<- list.files(paste("WDPA_matching_results/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+  d_PAs<- list.files(paste(f.path3,iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
   d_PA_id <- d_PAs %>% readr::parse_number()
   runPA_id1 <- d_PA_id[!(d_PA_id %in% matched_PAid)]
   
-  matched_all <- list.files(paste("WDPA_matching_results/",iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = FALSE)
+  matched_all <- list.files(paste(f.path3,iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = FALSE)
   # registerDoParallel(3)
   matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','raster')) %do% {   #non-NA matched results
     matched_PAs=c()
@@ -370,7 +372,7 @@ if(!dir.exists(paste("WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){
     } else {
       id_pa <- this_rds %>% str_split("_") %>% unlist %>% .[3]
     }
-    matched <- readRDS(paste("WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+    matched <- readRDS(paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
     if(!is.null(matched)){
       if(nrow(matched)!=0){
         matched_PAs=c(matched_PAs,this_rds) 
@@ -403,7 +405,7 @@ if(!dir.exists(paste("WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){
   } else {
     d_PAs <- NULL
   }
-  write.csv(d_PAs, paste(f.path"WDPA_matching_results/", iso3, "_wk_", gediwk, "_null_matches_rerun.csv",sep=""))
+  write.csv(d_PAs, paste(f.path3, iso3, "_wk_", gediwk, "_null_matches_rerun.csv",sep=""))
   cat("Step 4: need to rerun ", length(d_PAs),"PAs\n")
 }
 
@@ -415,7 +417,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   id_pa <-pa %>%str_split("_") %>% unlist %>% .[3]
   # cat(id_pa, "in",iso3,"\n")
   cat("No.", match(pa,d_PAs),"of total",length(d_PAs),"PAs in ", iso3, "\n" )
-  d_pa <- readRDS(paste("WDPA_matching_results/",iso3,"_testPAs/",pa, sep=""))
+  d_pa <- readRDS(paste(f.path3,iso3,"_testPAs/",pa, sep=""))
   d_filtered_prop <- tryCatch(propensity_filter(d_pa, d_control_local), error=function(e) return(NA))  #return a df of control and treatment after complete cases and propensity filters are applied
   # cat("Propensity score filtered DF dimension is",dim(d_filtered_prop),"\n")
   d_wocat_all <- tryCatch(filter(d_filtered_prop, status),error=function(e) return(NA))
@@ -558,7 +560,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   } else{
     pa_match <- NULL
   }
-    s3saveRDS(x = pa_match, bucket = "s3://maap-ops-workspace/", object=paste(f.path2, "WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""), region = "us-west-2")
+    s3saveRDS(x = pa_match, bucket = "s3://maap-ops-workspace/", object=paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""), region = "us-west-2")
   # cat("Results exported for PA", id_pa,"\n")
   rm(pa_match)
   return(NULL)
