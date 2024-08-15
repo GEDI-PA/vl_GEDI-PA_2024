@@ -45,7 +45,8 @@ cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
-f.path2 <- "s3://maap-ops-workspace/my-public-bucket/GEDI_global_PA_v2/"
+# f.path2 <- "s3://maap-ops-workspace/my-public-bucket/GEDI_global_PA_v2/"
+f.path2 <- "s3://maap-ops-workspace/shared/GEDI_global_PA_v2/"
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
