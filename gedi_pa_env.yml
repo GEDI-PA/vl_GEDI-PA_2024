@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - r-terra
+  - r-foreach
   - r-dplyr
   - r-sf
   - r-sp
@@ -34,4 +35,6 @@ dependencies:
   - r-aws.signature
   - r-digest
   - r-testthat
+  - r-aws.s3
+  - r-stringr
   
