@@ -5,16 +5,16 @@
 #This script runs steps 1-4 of the global processing code 
 #****Aug 6th To get this to run in your own directory, you need to change the working directory to where your outputs will be stowed
 
-# Set CRAN mirror
-options(repos = c(CRAN = "https://cran.r-project.org"))
+# # Set CRAN mirror
+# options(repos = c(CRAN = "https://cran.r-project.org"))
 
-# List of CRAN packages to be installed
-cran_packages <- c(
-  "s3","foreach", "aws.s3","stringr"
-)
+# # List of CRAN packages to be installed
+# cran_packages <- c(
+#   "s3","foreach", "aws.s3","stringr"
+# )
 
-# Install CRAN packages
-install.packages(cran_packages, dependencies = TRUE)
+# # Install CRAN packages
+# install.packages(cran_packages, dependencies = TRUE)
 
 library("terra")
 library("dplyr")
@@ -43,10 +43,15 @@ if (length(args)==0) {
 
 cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
+#Need 2 input locations and 1 output 
+
+#For spatial files need to use vsis3 pathway
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 # f.path2 <- "s3://maap-ops-workspace/my-public-bucket/GEDI_global_PA_v2/"
-f.path2 <- "s3://maap-ops-workspace/shared/GEDI_global_PA_v2/"
+f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
@@ -63,7 +68,7 @@ crs(MCD12Q1)  <- "epsg:6933"
 world_region <- rast(s3_get(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep="")))
 crs(world_region)  <- "epsg:6933"
 
-s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="")
+s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="") #Redo this for the gpkg
 
 # s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
 #               paste(f.path,"WDPA_countries/shp/",iso3,".shx",sep=""),
@@ -97,9 +102,9 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   GRID.lons.adm   <- crop(GRID.lons, adm_prj)
   GRID.lons.adm.m <- mask(GRID.lons.adm, adm_prj)
   rm(GRID.lats, GRID.lons, GRID.lats.adm, GRID.lons.adm)
-  
+
   #1.3) extract coordinates of raster cells with valid GEDI data in them
-  gedi_folder <- paste(f.path2,"WDPA_gedi_L4A_tiles/",sep="")
+  gedi_folder <- paste(gedipath,"WDPA_gedi_L4A_tiles/",sep="")
 # gedi_folder <- paste("~/my-public-bucket/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep="")
   tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
   iso3_tiles <- tileindex_df$tileindexiso3_tiles <- tileindex_df$tileindex
@@ -108,13 +113,15 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   for(i in 1:length(iso3_tiles)){
     
     iso3_tile_in <- paste("tile_num_",iso3_tiles[i],sep="")
+      
 
     print(paste(iso3_tile_in," processing",sep=""))
     print(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))
     #if(!file.exists(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))){
     #    print(paste(iso3_tile_in," does not exist",sep=""))
     #    } else {
-    gedi_data <- read_sf(s3_get(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))) %>%
+    geopath<- paste0(gedi_folder,iso3_tile_in,"_L4A.gpkg")
+    gedi_data <- read_sf(geopath,layer=paste0(iso3_tile_in,"_L4A")) %>% #NO S3 get here, if spatial format, don't use S3 lib
       dplyr::select(lon_lowestmode,lat_lowestmode)
     gedi_data <- gedi_data %>% st_drop_geometry()
     gedi_pts  <- vect(gedi_data, geom=c("lon_lowestmode","lat_lowestmode"), crs="epsg:4326", keepgeom=FALSE)        
@@ -159,12 +166,12 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
 #  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))){
 #      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))}    
   cat("Step 2.1: Preparing control dataset for", iso3, "\n")
-  GRID.pts.nonPA <- project(GRID.for.matching, "epsg:4326")
+  GRID.pts.nonPA <- project(GRID.for.matching, "epsg:4326") #***Ask Vero why we're doing this 1 at a time, rather than all at once maybe vectorize
   for(i in 1:length(allPAs)){
     PA          <- vect(allPAs[i,])
-    PA_prj      <- project(PA, "epsg:6933")
+    PA_prj      <- project(PA, "epsg:6933") #**Why do we have to change the projection twice?
     PA_prj_buff <- buffer(PA_prj, width = 10000) ##10km buffer
-    PA2         <- project(PA_prj_buff, "epsg:4326")
+    PA2         <- project(PA_prj_buff, "epsg:4326") 
     overlap     <- GRID.pts.nonPA[PA2]
     if(length(overlap)>0){
       GRID.pts.nonPA0 <- st_difference(sf::st_as_sf(GRID.pts.nonPA), sf::st_as_sf(PA2)) ##remove pts inside poly
@@ -349,12 +356,12 @@ cat("Step 4: Performing matching for", iso3,"\n")
 d_control_local <- readRDS(s3_get(paste(f.path2,"WDPA_grids/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")))
 d_control_local <-d_control_local[complete.cases(d_control_local), ]  #filter away non-complete cases w/ NA in control set
 
-
-f.path3<- "~/Global_Process_Output/WDPA_matching_results/"
+#All this file creation should be a function
+f.path3<- "output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
 
 if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
   # cat("Matching result dir does not EXISTS\n")
-  dir.create(file.path(paste(f.path3,iso3,"_wk",gediwk,"/",sep="")))
+  dir.create(file.path(f.path3,paste0(iso3,"_wk",gediwk)),recursive=TRUE)
   d_PAs <- list.files(paste(f.path3,iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
 } else if (dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
   pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
