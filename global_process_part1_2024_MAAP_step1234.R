@@ -98,7 +98,8 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   rm(GRID.lats, GRID.lons, GRID.lats.adm, GRID.lons.adm)
   
   #1.3) extract coordinates of raster cells with valid GEDI data in them
-  gedi_folder <- paste("~/my-public-bucket/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep="")
+  gedi_folder <- paste(f.path2,"WDPA_gedi_L4A_tiles/",sep="")
+# gedi_folder <- paste("~/my-public-bucket/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep="")
   tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
   iso3_tiles <- tileindex_df$tileindexiso3_tiles <- tileindex_df$tileindex
     
@@ -112,7 +113,7 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
     #if(!file.exists(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))){
     #    print(paste(iso3_tile_in," does not exist",sep=""))
     #    } else {
-    gedi_data <- read_sf(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep="")) %>%
+    gedi_data <- read_sf(s3_get(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))) %>%
       dplyr::select(lon_lowestmode,lat_lowestmode)
     gedi_data <- gedi_data %>% st_drop_geometry()
     gedi_pts  <- vect(gedi_data, geom=c("lon_lowestmode","lat_lowestmode"), crs="epsg:4326", keepgeom=FALSE)        
@@ -570,4 +571,3 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
 # # cat(tElapsed, "for matching all PAs in", iso3,"\n")
 # stopImplicitCluster()
 cat("Done matching for",iso3,". Finishing...\n")
-
