@@ -38,4 +38,5 @@ dependencies:
   - r-aws.s3
   - r-stringr
   - r-tidyr
+  - r-paws
   
