@@ -1,7 +1,7 @@
 algorithm_description: prepare control and PA points for matching
-algorithm_name: run_gedi_pa_prepping
+algorithm_name: run_gedi_pa_prepping_1234
 algorithm_version: main
-build_command: GEDI_PA/vl_GEDI-PA_2024/build_gedi_pa.sh
+build_command: vl_GEDI-PA_2024/build_gedi_pa.sh
 disk_space: 80GB
 docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/r:v4.0.0
 inputs:

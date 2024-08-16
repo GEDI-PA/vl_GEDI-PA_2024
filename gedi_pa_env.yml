@@ -37,4 +37,5 @@ dependencies:
   - r-testthat
   - r-aws.s3
   - r-stringr
+  - r-tidyr
   
