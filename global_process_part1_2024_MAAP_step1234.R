@@ -24,6 +24,11 @@ library("s3")
 library("foreach")
 library("stringr")
 library("aws.s3")
+library("optmatch")
+
+s3 <- paws::s3()
+
+source("~/GEDI_PA/vl_GEDI-PA_2024/matching_func_2024.r") #Source to R code for matching function
 
 #To test, we define the variables manually. For final version, run the commented out section below
 #iso3 <-"ECU"
@@ -51,6 +56,7 @@ f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 # f.path2 <- "s3://maap-ops-workspace/my-public-bucket/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+f.path3<- "output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
 
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
@@ -339,39 +345,48 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
 #STEP4. Set up spatial points data frames (control + each PA) for point matching
 # if (file.exists(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_matching_output_wk",gediwk,".RDS", sep=""))){
 
-#foreach_rbin function taken from matching_func.R
-foreach_rbind <- function(d1, d2) {
-  if (is.null(d1) & is.null(d2)) {
-    return(NULL)
-  } else if (!is.null(d1) & is.null(d2)) {
-    return(d1)
-  } else if (is.null(d1) & !is.null(d2)) {
-    return(d2)
-  } else  {
-    return(rbind(d1, d2))
-  }
-}
-
 cat("Step 4: Performing matching for", iso3,"\n")
 d_control_local <- readRDS(s3_get(paste(f.path2,"WDPA_grids/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")))
 d_control_local <-d_control_local[complete.cases(d_control_local), ]  #filter away non-complete cases w/ NA in control set
 
 #All this file creation should be a function
-f.path3<- "output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
 
 if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
   # cat("Matching result dir does not EXISTS\n")
   dir.create(file.path(f.path3,paste0(iso3,"_wk",gediwk)),recursive=TRUE)
-  d_PAs <- list.files(paste(f.path3,iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+
+  results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_matching_results/",iso3,"_testPAs/",sep=""))
+  d_PAs <- sapply(results$Contents, function(x) {x$Key})
+  pattern=paste("wk",gediwk,sep="")
+  d_PAs <- grep(pattern, d_PAs, value=TRUE)   
+    
 } else if (dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
-  pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
-  matched_PAid <- list.files(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""), full.names = FALSE, pattern=paste0(pattern1, collapse="|"))%>%
-    readr::parse_number() %>% unique()
-  d_PAs<- list.files(paste(f.path3,iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+  matched_results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))
+  matched_PAid <- sapply(matched_results$Contents, function(x) {x$Key})
+  pattern=paste("wk",gediwk,sep="")
+  matched_PAid  <- grep(pattern, matched_PAid, value=TRUE) %>% readr::parse_number() %>% unique()
+
+  results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_matching_results/",iso3,"_testPAs/",sep=""))
+  d_PAs <- sapply(results$Contents, function(x) {x$Key})
+  pattern=paste("wk",gediwk,sep="")
+  d_PAs <- grep(pattern, d_PAs, value=TRUE)
   d_PA_id <- d_PAs %>% readr::parse_number()
   runPA_id1 <- d_PA_id[!(d_PA_id %in% matched_PAid)]
-  
-  matched_all <- list.files(paste(f.path3,iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = FALSE)
+  # runPA_id1  <- grep(pattern, d_PAs, value=TRUE) %>% readr::parse_number() %>% unique()
+    
+    # matched_PAid <- list.files(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""), full.names = FALSE, pattern=paste0(pattern1, collapse="|"))%>%
+    # readr::parse_number() %>% unique()
+  # d_PAs<- list.files(paste(f.path3,iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+    
+  resultsMatch <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_matching_results/",iso3,"_wk",gediwk,sep=""))
+  matched_all <- sapply(resultsMatch$Contents, function(x) {x$Key})
+  pattern2= ".RDS"
+  matched_all <- grep(pattern2, matched_all, value=TRUE)
+  # matched_all <- list.files(paste(f.path3,iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = FALSE)
   # registerDoParallel(3)
   matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','raster')) %do% {   #non-NA matched results
     matched_PAs=c()
@@ -381,7 +396,7 @@ if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
     } else {
       id_pa <- this_rds %>% str_split("_") %>% unlist %>% .[3]
     }
-    matched <- readRDS(paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+    matched <- readRDS(paste(f.path2,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
     if(!is.null(matched)){
       if(nrow(matched)!=0){
         matched_PAs=c(matched_PAs,this_rds) 
@@ -421,12 +436,21 @@ if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
 # registerDoParallel(mproc)
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
 # startTime <- Sys.time()
-foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr')) %do% {
+results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_matching_results/",iso3,"_testPAs/",sep=""))
+d_PAs <- sapply(results$Contents, function(x) {x$Key})
+pattern=paste("wk",gediwk,sep="")  
+d_PAs <- grep(pattern, d_PAs, value=TRUE)%>% unlist %>% str_split("/")
+d_PAs <-sapply(d_PAs, tail, 1)
+
+foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch')) %do% {
   pa <- this_pa
-  id_pa <-pa %>%str_split("_") %>% unlist %>% .[3]
+    print(pa)
+  id_pa <-pa %>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
   # cat(id_pa, "in",iso3,"\n")
+    path <- paste(f.path2,"/WDPA_matching_results/",iso3,"_testPAs/",pa, sep="")
   cat("No.", match(pa,d_PAs),"of total",length(d_PAs),"PAs in ", iso3, "\n" )
-  d_pa <- readRDS(paste(f.path3,iso3,"_testPAs/",pa, sep=""))
+  d_pa <- readRDS(s3_get(path))
   d_filtered_prop <- tryCatch(propensity_filter(d_pa, d_control_local), error=function(e) return(NA))  #return a df of control and treatment after complete cases and propensity filters are applied
   # cat("Propensity score filtered DF dimension is",dim(d_filtered_prop),"\n")
   d_wocat_all <- tryCatch(filter(d_filtered_prop, status),error=function(e) return(NA))
@@ -502,8 +526,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       pa_match <- rbind(pa_match,match_score)
     }
   } else if (length(l)>=900){
-    registerDoParallel(4)
-    pa_match <- foreach(pa_c=1:length(l), .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr'))%dopar%{
+    pa_match <- foreach(pa_c=1:length(l), .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch'))%do%{
       # cat("Matching treatment chunk", pa_c, "out of", length(l), "for PA", id_pa,"\n")
       cat("chunk",pa_c,"out of ",length(l), "chunks of PA", id_pa,"\n")
       # cat("head control",head(ids_all0),"\n")
@@ -569,9 +592,10 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   } else{
     pa_match <- NULL
   }
-    s3saveRDS(x = pa_match, bucket = "s3://maap-ops-workspace/", object=paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""), region = "us-west-2")
-  # cat("Results exported for PA", id_pa,"\n")
-  rm(pa_match)
+  s3saveRDS(x = pa_match, bucket = "maap-ops-workspace", object=paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""), region = "us-west-2")
+  # saveRDS(pa_match, file=paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+  cat("Results exported for PA", id_pa,"\n")
+  rm(pa_match)                                    
   return(NULL)
 }
 
