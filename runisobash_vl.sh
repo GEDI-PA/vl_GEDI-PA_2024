@@ -1,5 +1,5 @@
 #!/bin/bash
-# basedir=$( cd "$(dirname "$0")" ; pwd -P )
+basedir=$( cd "$(dirname "$0")" ; pwd -P )
 
 mkdir -p output
 
