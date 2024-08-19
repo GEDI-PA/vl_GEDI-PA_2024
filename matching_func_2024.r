@@ -148,21 +148,21 @@ match_wocat <- function(df, pid) {
                       }
                       if(nrow(this_d)==0){
                         log_mes <- paste(pid,"-Matching without wwfecoreg:Failed\n",sep="")
-                        dir.create(paste(paste(f.path,"WDPA_matching_log/",iso3,sep="")))
-                        cat(log_mes,file=paste(f.path,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                        dir.create(paste(paste(f.path3,"WDPA_matching_log/",iso3,sep="")))
+                        cat(log_mes,file=paste(f.path3,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
                         return(NULL)
                       } else{
                         log_mes <- paste(pid,"-Matching without wwfecoreg:Succeed\n",sep="")
-                        dir.create(paste(paste(f.path,"WDPA_matching_log/",iso3,sep="")))
-                        cat(log_mes,file=paste(f.path,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                        dir.create(paste(paste(f.path3,"WDPA_matching_log/",iso3,sep="")))
+                        cat(log_mes,file=paste(f.path3,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
                         match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
                         return(match_results)
                       }
                     } else {
                       log_mes <- paste(pid,"-Matching with wwfecoreg:Succeed\n",sep="")
                       match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
-                      dir.create(paste(paste(f.path,"WDPA_matching_log/",iso3,sep="")))
-                      cat(log_mes,file=paste(f.path,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                      dir.create(paste(paste(f.path3,"WDPA_matching_log/",iso3,sep="")))
+                      cat(log_mes,file=paste(f.path3,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
                       return(match_results)
                     }
                   }
@@ -344,7 +344,7 @@ subdfExport <- function(filtered_df){
         biom <- paste(c(biom), collapse="&")
       }
       # print(biom)
-      write.csv(spt2_new, file=paste(f.path,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_PA_",unique(spt2_new$pa_id),"_",biom,".csv", sep=""))
+      write.csv(spt2_new, file=paste(f.path3,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_PA_",unique(spt2_new$pa_id),"_",biom,".csv", sep=""))
       return(spt2_new)
     }
   })
@@ -505,12 +505,20 @@ getmode <- function(v,na.rm) {
 # }                                      
       
 extract_gedi <- function(matched, mras){
-    f.path <- '~/GEDI_PA/Matching_Layers/SEN/SEN_Tiles/'
-    
-    all_gedil2_f <- list.files(path=f.path, pattern="L2A", all.files=TRUE, full.names=TRUE)#[1:11]  
-    all_gedil4_f <- list.files(path=f.path, pattern="L4A", all.files=TRUE, full.names=TRUE)#[1:11] 
-        
-    registerDoParallel(cores=8)
+    f.path <- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
+
+    gedi_results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste0(f.path,'WDPA_gedi_L2A_tiles'))
+    all_gedil2_f <- sapply(matched_results$Contents, function(x) {x$Key})
+    pattern=paste("L2A",gediwk,sep="")
+    all_gedil2_f  <- grep(pattern, all_gedil2_f, value=TRUE)
+
+    gedi_results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste0(f.path,'WDPA_gedi_L4A_tiles'))
+    all_gedil4_f <- sapply(matched_results$Contents, function(x) {x$Key})
+    pattern=paste("L4A",gediwk,sep="")
+    all_gedil4_f  <- grep(pattern, all_gedil4_f, value=TRUE)
+           
     ex_out <- foreach(this_csvid=seq(length(all_gedil2_f)), 
                   .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','raster')) %dopar% {
         ##add the GEDI l4a model prediction for AGB here :
