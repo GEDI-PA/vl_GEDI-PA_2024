@@ -39,4 +39,5 @@ dependencies:
   - r-stringr
   - r-tidyr
   - r-paws
+  - r-optmatch
   
