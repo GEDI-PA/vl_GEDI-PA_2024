@@ -25,6 +25,7 @@ library("foreach")
 library("stringr")
 library("aws.s3")
 library("optmatch")
+library("doParallel")
 
 s3 <- paws::s3()
 
@@ -40,7 +41,7 @@ if (length(args)==0) {
   
   iso3 <- args[1]  #country to process
   #gediwk <- args[2]   #the # of weeks GEDI data to use
-  #mproc <- as.integer(args[3])  #the number of cores to use for matching
+  mproc <- as.integer(args[2])  #the number of cores to use for matching
 }
 #-------------------------------------------------------------------------------
 
@@ -358,21 +359,23 @@ if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
                             Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_matching_results/",iso3,"_testPAs/",sep=""))
   d_PAs <- sapply(results$Contents, function(x) {x$Key})
   pattern=paste("wk",gediwk,sep="")
-  d_PAs <- grep(pattern, d_PAs, value=TRUE)   
+  d_PAs <- grep(pattern, d_PAs, value=TRUE)
     
 } else if (dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
   matched_results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                             Prefix=paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))
   matched_PAid <- sapply(matched_results$Contents, function(x) {x$Key})
   pattern=paste("wk",gediwk,sep="")
-  matched_PAid  <- grep(pattern, matched_PAid, value=TRUE) %>% readr::parse_number() %>% unique()
-
+  matched_PAid  <- grep(pattern, matched_PAid, value=TRUE) %>%str_split("_") %>% unlist %>% .[6]
+  print(matched_PAid)
+    
   results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                             Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_matching_results/",iso3,"_testPAs/",sep=""))
   d_PAs <- sapply(results$Contents, function(x) {x$Key})
   pattern=paste("wk",gediwk,sep="")
   d_PAs <- grep(pattern, d_PAs, value=TRUE)
-  d_PA_id <- d_PAs %>% readr::parse_number()
+  d_PA_id <- d_PAs %>%str_split("_") %>% unlist %>% .[10]
+  print(d_PA_id)
   runPA_id1 <- d_PA_id[!(d_PA_id %in% matched_PAid)]
   # runPA_id1  <- grep(pattern, d_PAs, value=TRUE) %>% readr::parse_number() %>% unique()
     
@@ -386,8 +389,8 @@ if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
   pattern2= ".RDS"
   matched_all <- grep(pattern2, matched_all, value=TRUE)
   # matched_all <- list.files(paste(f.path3,iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = FALSE)
-  # registerDoParallel(3)
-  matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','raster')) %do% {   #non-NA matched results
+  registerDoParallel(3)
+  matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %dopar% {   #non-NA matched results
     matched_PAs=c()
     # print(this_rds)
     if(nchar(iso3)>3){
@@ -395,8 +398,9 @@ if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
     } else {
       id_pa <- this_rds %>% str_split("_") %>% unlist %>% .[3]
     }
-    matched <- readRDS(paste(f.path2,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
-    if(!is.null(matched)){
+    matched <- readRDS(paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+    print(matched)
+      if(!is.null(matched)){
       if(nrow(matched)!=0){
         matched_PAs=c(matched_PAs,this_rds) 
       }
@@ -406,18 +410,18 @@ if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
     }
     return(matched_PAs)
   }
-  # stopImplicitCluster()
+  stopImplicitCluster()
   
   if(!is.null(matched_PAs)){
-    fullmatch_ids <- matched_PAs %>% readr::parse_number()
+    fullmatch_ids <- matched_PAs %>%str_split("_") %>% unlist %>% .[6]
     runPA_id2 <- d_PA_id[!(d_PA_id %in% fullmatch_ids)]
     runPA_id <- c(runPA_id1,runPA_id2)
     
   } else{
-    fullmatch_ids <- d_PAs %>% readr::parse_number()
+    fullmatch_ids <- d_PAs %>%str_split("_") %>% unlist %>% .[10]
     runPA_id2 <- fullmatch_ids#d_PA_id[!(d_PA_id %in% fullmatch_ids)]
     runPA_id <- c(runPA_id1,runPA_id2)
-    
+    print(runPA_id)
   }
   
   if (length(runPA_id)>0){
@@ -432,9 +436,9 @@ if(!dir.exists(paste(f.path3,iso3,"_wk",gediwk,"/",sep=""))){
   cat("Step 4: need to rerun ", length(d_PAs),"PAs\n")
 }
 
-# registerDoParallel(mproc)
+registerDoParallel(mproc)
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
-# startTime <- Sys.time()
+startTime <- Sys.time()
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                             Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_matching_results/",iso3,"_testPAs/",sep=""))
 d_PAs <- sapply(results$Contents, function(x) {x$Key})
@@ -442,7 +446,7 @@ pattern=paste("wk",gediwk,sep="")
 d_PAs <- grep(pattern, d_PAs, value=TRUE)%>% unlist %>% str_split("/")
 d_PAs <-sapply(d_PAs, tail, 1)
 
-foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch')) %do% {
+foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) %dopar% {
   pa <- this_pa
     print(pa)
   id_pa <-pa %>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
@@ -525,7 +529,8 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       pa_match <- rbind(pa_match,match_score)
     }
   } else if (length(l)>=900){
-    pa_match <- foreach(pa_c=1:length(l), .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch'))%do%{
+    registerDoParallel(4)
+    pa_match <- foreach(pa_c=1:length(l), .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel'))%dopar%{
       # cat("Matching treatment chunk", pa_c, "out of", length(l), "for PA", id_pa,"\n")
       cat("chunk",pa_c,"out of ",length(l), "chunks of PA", id_pa,"\n")
       # cat("head control",head(ids_all0),"\n")
@@ -587,7 +592,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       # cat(table(match_score$status),"\n")
       return(match_score)
     }
-    # stopImplicitCluster()
+    stopImplicitCluster()
   } else{
     pa_match <- NULL
   }
@@ -598,7 +603,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   return(NULL)
 }
 
-# tElapsed <- Sys.time()-startTime
+tElapsed <- Sys.time()-startTime
 # # cat(tElapsed, "for matching all PAs in", iso3,"\n")
-# stopImplicitCluster()
+stopImplicitCluster()
 cat("Done matching for",iso3,". Finishing...\n")
