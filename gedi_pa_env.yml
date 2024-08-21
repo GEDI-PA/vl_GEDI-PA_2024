@@ -40,4 +40,5 @@ dependencies:
   - r-tidyr
   - r-paws
   - r-optmatch
+  - r-readr
   
