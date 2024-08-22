@@ -598,8 +598,11 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   } else{
     pa_match <- NULL
   }
-  s3saveRDS(x = pa_match, bucket = "maap-ops-workspace", object=paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""), region = "us-west-2")
-  # saveRDS(pa_match, file=paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+  # s3saveRDS(x = pa_match, bucket = "maap-ops-workspace", object=paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""), region = "us-west-2")
+  path<- paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
+  saveRDS(pa_match, file=path))
+  print(pa_match)
+  print(path)
   cat("Results exported for PA", id_pa,"\n")
   rm(pa_match)                                    
   return(NULL)
