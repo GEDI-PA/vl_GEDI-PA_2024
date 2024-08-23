@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-basedir=$( cd "$(dirname "$0")" ; pwd -P )
+basedir=$( cd "vl_GEDI-PA_2024" ; pwd -P )
 
 ####install requirements packages
 conda env update -f ${basedir}/gedi_pa_env.yml
