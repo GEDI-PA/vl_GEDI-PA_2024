@@ -41,4 +41,21 @@ dependencies:
   - r-paws
   - r-optmatch
   - r-readr
+  - r-rgeos
+  - r-plyr
+  - r-mapview
+  - r-gridExtra
+  - r-lattice
+  - r-RItools
+  - r-MASS
+  - r-rlang
+  - r-magrittr
+  - r-randomForest
+  - r-modelr
+  - r-ranger
+  - r-caret
+  
+  
+  
+  
   
