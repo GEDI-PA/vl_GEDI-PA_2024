@@ -45,14 +45,12 @@ crs(MCD12Q1)  <- "epsg:6933"
 world_region <- rast(s3_get(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep="")))
 crs(world_region)  <- "epsg:6933"
 
-#s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
-#              paste(f.path,"WDPA_countries/shp/",iso3,".shx",sep=""),
-#              paste(f.path,"WDPA_countries/shp/",iso3,".prj",sep=""),
-#              paste(f.path,"WDPA_countries/shp/",iso3,".dbf",sep="")),confirm = FALSE)
-#adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
+s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
+              paste(f.path,"WDPA_countries/shp/",iso3,".shx",sep=""),
+              paste(f.path,"WDPA_countries/shp/",iso3,".prj",sep=""),
+              paste(f.path,"WDPA_countries/shp/",iso3,".dbf",sep="")),confirm = FALSE)
 
-s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="") #Redo this for the gpkg
-adm <- st_read(s3_path)
+adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
 adm_prj <- project(vect(adm), "epsg:6933")
 
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
