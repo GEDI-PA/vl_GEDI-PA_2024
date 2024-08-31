@@ -35,7 +35,7 @@ if (length(args)==0) {
 }
 #-------------------------------------------------------------------------------
 
-cat("Step 0: Loading global variables for", iso3, "with wk", gediwk, "data \n")
+cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
@@ -55,17 +55,20 @@ crs(MCD12Q1)  <- "epsg:6933"
 world_region <- rast(s3_get(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep="")))
 crs(world_region)  <- "epsg:6933"
 
-s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
-               paste(f.path,"WDPA_countries/shp/",iso3,".shx",sep=""),
-               paste(f.path,"WDPA_countries/shp/",iso3,".prj",sep=""),
-               paste(f.path,"WDPA_countries/shp/",iso3,".dbf",sep="")),confirm = FALSE)
+#s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
+#              paste(f.path,"WDPA_countries/shp/",iso3,".shx",sep=""),
+#              paste(f.path,"WDPA_countries/shp/",iso3,".prj",sep=""),
+#              paste(f.path,"WDPA_countries/shp/",iso3,".dbf",sep="")),confirm = FALSE)
+#adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
 
-adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
+s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="") #Redo this for the gpkg
+adm <- st_read(s3_path)
 adm_prj <- project(vect(adm), "epsg:6933")
 
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 #source(s3_get(paste(f.path,"matching_func.R",sep="")))
 source(s3_get(paste(f.path,"matching_func_2024.R",sep="")))
+
 
 #STEP4. Set up spatial points data frames (control + each PA) for point matching
 # if (file.exists(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_matching_output_wk",gediwk,".RDS", sep=""))){
@@ -76,9 +79,9 @@ f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 #f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
 #if(!dir.exists(paste(f.path0,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){
-# cat("Matching result dir does not EXISTS\n")
-dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
-d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+  # cat("Matching result dir does not EXISTS\n")
+  dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
+  d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
 #} else if (dir.exists(paste(f.path0,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
 #  pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
 #  matched_PAid <- list.files(paste(f.path0,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""), full.names = FALSE, pattern=paste0(pattern1, collapse="|"))%>%
@@ -95,13 +98,11 @@ d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs
 #  }
 #}
 
-f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
-#f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
 registerDoParallel(mproc)
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
 startTime <- Sys.time()
-d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+#d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
 
 foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) %dopar% {
   pa <- this_pa
@@ -125,7 +126,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   l <- tryCatch(split(d_wocat_all, sample(1:N, nrow(d_wocat_all), replace=TRUE)),error=function(e) return(NULL))
   # l <- tryCatch(split(d_wocat_all, (as.numeric(rownames(d_wocat_all))-1) %/% 300),error=function(e) return(0))
   
-  #  if (length(l)<50 && length(l)>0 ){
+#  if (length(l)<50 && length(l)>0 ){
   if (length(l)<900 && length(l)>0 ){
     pa_match <- data.frame()
     for (pa_c in 1:length(l)){
@@ -185,7 +186,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       cat(table(match_score$status),"\n")
       pa_match <- rbind(pa_match,match_score)
     }
-    #  } else if (length(l)>=50){
+#  } else if (length(l)>=50){
   } else if (length(l)>=900){
     registerDoParallel(3)
     #pa_match <- foreach(pa_c=length(l), .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel'))%dopar%{
@@ -265,10 +266,3 @@ tElapsed <- Sys.time()-startTime
 # cat(tElapsed, "for matching all PAs in", iso3,"\n")
 stopImplicitCluster()
 cat("Done matching for",iso3,". Finishing...\n")
-
-
-
-
-
-
-

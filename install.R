@@ -3,7 +3,7 @@ options(repos = c(CRAN = "https://cran.r-project.org"))
 
 # List of CRAN packages to be installed
 cran_packages <- c(
-  "s3"
+  "s3", "foreach", "aws.s3", "stringr", "optmatch", "doParallel"
 )
 
 # Install CRAN packages
