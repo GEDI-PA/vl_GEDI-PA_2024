@@ -75,13 +75,17 @@ source(s3_get(paste(f.path,"matching_func_2024.R",sep="")))
 d_control_local <- readRDS(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep="")))
 d_control_local <- d_control_local[complete.cases(d_control_local), ]  #filter away non-complete cases w/ NA in control set
 
-f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+#f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 #f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+
+filename_out <- paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep="")
+  saveRDS(GRID.for.matching, file = filename_out)
 
 #if(!dir.exists(paste(f.path0,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){
   # cat("Matching result dir does not EXISTS\n")
-  dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
-  d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+#dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
+dir.create(file.path(paste("output/","WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
+d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
 #} else if (dir.exists(paste(f.path0,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
 #  pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
 #  matched_PAid <- list.files(paste(f.path0,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""), full.names = FALSE, pattern=paste0(pattern1, collapse="|"))%>%
@@ -256,7 +260,9 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   } else{
     pa_match <- NULL
   }
-  saveRDS(pa_match, file=paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+#  saveRDS(pa_match, file=paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+saveRDS(pa_match, file=paste("output/","WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+
   cat("Results exported for PA", id_pa,"\n")
   rm(pa_match)
   return(NULL)
