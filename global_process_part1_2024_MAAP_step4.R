@@ -78,9 +78,6 @@ d_control_local <- d_control_local[complete.cases(d_control_local), ]  #filter a
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 #f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
-filename_out <- paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep="")
-  saveRDS(GRID.for.matching, file = filename_out)
-
 #if(!dir.exists(paste(f.path0,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){
   # cat("Matching result dir does not EXISTS\n")
 #dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
