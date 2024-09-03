@@ -71,13 +71,14 @@ source(s3_get(paste(f.path,"matching_func_2024.R",sep="")))
 
 
 #Initialize an empty list to store matching_results filenames
-output_filenames <- list()
+#output_filenames <- list()
 
 #STEP4. Set up spatial points data frames (control + each PA) for point matching
 # if (file.exists(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_matching_output_wk",gediwk,".RDS", sep=""))){
 d_control_local <- readRDS(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep="")))
 d_control_local <- d_control_local[complete.cases(d_control_local), ]  #filter away non-complete cases w/ NA in control set
 
+#dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
 dir.create(file.path(paste("output/",iso3,"_wk",gediwk,"/",sep="")))
 
 testPAs_fileindex <- read.csv(s3_get(paste(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs_fileindex.csv",sep=""))))
@@ -243,11 +244,12 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
     pa_match <- NULL
   }
 
-    output_filename <- paste("output/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
-    saveRDS(pa_match, file=output_filename)
+    output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
+    saveRDS(pa_match, file=paste("output/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
+  
   
   # Append the filename to the list
-  output_filenames <- c(output_filenames, output_filename)
+  #output_filenames <- c(output_filenames, output_filename)
   
   cat("Results exported for PA", id_pa, "\n")
   rm(pa_match)
@@ -260,5 +262,5 @@ stopImplicitCluster()
 cat("Done matching for",iso3,". Finishing...\n")
 
 # Write the list of filenames to a CSV file
-write.csv(output_filenames, file=paste("output/",iso3,"_wk",gediwk,"_matching_result_filenames.csv", sep=""), row.names = FALSE, col.names = FALSE)
+#write.csv(output_filenames, file=paste("output/",iso3,"_wk",gediwk,"_matching_result_filenames.csv", sep=""), row.names = FALSE, col.names = FALSE)
 
