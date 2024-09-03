@@ -220,6 +220,10 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
 #  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))){
 #      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))}
   cat("Step 3.1: Processing prepped PA treatment dataset for ", iso3, "\n")
+
+    testPAs_fileindex <- cbind(allPAs$WDPAID, rep(NA, nrow(allPAs)))
+    colnames(testPAs_fileindex) <- c("WDPAID", "filename")
+
   for(i in 1:length(allPAs)){
     cat(iso3, i, "out of ", length(allPAs), "\n")
     testPA <- vect(allPAs[i,])
@@ -289,9 +293,15 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       d_pa$UID <- seq.int(nrow(d_pa))
 
       filename_out <- paste("output/",iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
-      saveRDS(d_pa, file = filename_out)  
+      saveRDS(d_pa, file = filename_out)
+
+    testPAs_fileindex[i,"filename"] <- paste(iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")    
+
     }
   }
+
+write.csv(testPAs_fileindex, file = paste("output/",iso3,"_testPAs_fileindex.csv", sep=""), row.names=F)
+
 #} else if (length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""),pattern = paste(gediwk,".RDS",sep="")))==length(allPAs)){
 #  cat("Step 3.1: prepped PA treatment dataset already exists for ", iso3, "no need for reprocessing\n")
 #}
