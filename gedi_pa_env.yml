@@ -35,3 +35,4 @@ dependencies:
   - r-digest
   - r-testthat
   - r-stringr
+  - r-readr
