@@ -92,19 +92,16 @@ startTime <- Sys.time()
 
 foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) %dopar% {
   pa <- this_pa
-  #id_pa <- pa %>%str_split("_") %>% unlist %>% .[[3]]
   id_pa <- this_pa%>%readr::parse_number() %>% unique() #%>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
-  # cat(id_pa, "in",iso3,"\n")
   cat("No.", match(pa,d_PAs),"of total",length(d_PAs),"PAs in ", iso3, "\n" )
+  #d_pa <- readRDS(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/",pa, sep=""))
   d_pa <- readRDS(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/",pa, sep="")))
-  # cat(iso3, "pa no.",id_pa, "has",nrow(d_pa)," of treatment \n")
   d_filtered_prop <- tryCatch(propensity_filter(d_pa, d_control_local), error=function(e) return(NA))  #return a df of control and treatment after complete cases and propensity filters are applied
   # cat("Propensity score filtered DF dimension is",dim(d_filtered_prop),"\n")
   d_wocat_all <- tryCatch(filter(d_filtered_prop, status),error=function(e) return(NA))
   d_control_all <- tryCatch(filter(d_filtered_prop, !status),error=function(e) return(NA))
   
   n_control <- dim(d_control_all)[1]
-  # ids_all <- d_control_all$UID   #seq(1,n_control)
   ids_all0 <- tryCatch(d_control_all$UID, error=function(e) return(NA))
   ids_all <- d_control_all$UID
   set.seed(125)
@@ -244,13 +241,15 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
     pa_match <- NULL
   }
 
+    #output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
+    #saveRDS(pa_match, file=paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
     output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
     saveRDS(pa_match, file=paste("output/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
   
-  
   # Append the filename to the list
-  #output_filenames <- c(output_filenames, output_filename)
-  
+#  matched_PA <- c(matched_PA, output_filename)
+#  print(output_filename)
+                                       
   cat("Results exported for PA", id_pa, "\n")
   rm(pa_match)
   return(NULL)
