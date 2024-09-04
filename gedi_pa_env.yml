@@ -34,4 +34,4 @@ dependencies:
   - r-aws.signature
   - r-digest
   - r-testthat
-  
+  - r-stringr
