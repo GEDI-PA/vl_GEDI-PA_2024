@@ -31,7 +31,7 @@ foreach_rbind <- function(d1, d2) {
 
 match_wocat <- function(df, pid) {
   
-  registerDoParallel(4)
+  registerDoParallel(4) #_@_@
   
   options("optmatch_max_problem_size"=Inf)
   
@@ -50,7 +50,7 @@ match_wocat <- function(df, pid) {
   #test nested foreach loops
   ret <- foreach (this_lc=unique(df$land_cover),
                   .packages=c('optmatch', 'dplyr'),
-                  .combine=foreach_rbind, .inorder=FALSE) %dopar% {
+                  .combine=foreach_rbind, .inorder=FALSE) %dopar% { #_@_@
                     this_d<-df #****Both of these are d_all, make sure these have same info as d_all below****
                     d_wocat <- filter(this_d, status)
                     # Filter out climates and land covers that don't appear in the wocat
@@ -167,7 +167,7 @@ match_wocat <- function(df, pid) {
                     }
                   }
   
-  stopImplicitCluster()
+  stopImplicitCluster()  #_@_@
   return(ret)
 }
 
@@ -186,6 +186,9 @@ propensity_filter <- function(pa_df, d_control_local){
   # boxplot(ps)  #check the distribution of propensity scores for treatment and controls
   #filter out the controls with propensity scores outside of the overlapping region
   d_all$propensity_score <- fitted(ps)
+  write.csv(d_all,
+            paste(f.path3,iso3,"_wk",gediwk,"_prefilter_ps/",iso3,"_pa_",id_pa,"_pre_filter_ps_wk",gediwk,".csv", sep=""))
+
   d_sep <- d_all %>% dplyr::group_by(status)
   d_sep_range <- d_all %>% dplyr::group_by(status)%>% 
     dplyr::summarise(propmin= min(propensity_score), promax=max(propensity_score)) 
@@ -232,35 +235,48 @@ propensity_filter <- function(pa_df, d_control_local){
 #     return(empr)
 #   }
 # }
-matched2ras <- function(matched_df){
-  cat(iso3,"converting the matched csv to a raster stack for extraction\n")
+matched2ras <- function(matched_df) {
+  
+  cat("Converting the matched csv to a raster stack for extraction\n")
   
   matched_pts <- SpatialPointsDataFrame(coords=matched_df[,c("lon","lat")],
                                           proj4string=CRS("+init=epsg:4326"), data=matched_df) %>% 
-    spTransform(., CRS("+init=epsg:6933"))
+                                          spTransform(., CRS("+init=epsg:6933"))
+ matched_pts<- vect(matched_pts)
   
-    matched_pts$UID <- as.integer(matched_pts$UID)
+  # Ensure fields are in appropriate formats
+  matched_pts$UID <- as.integer(matched_pts$UID)
   matched_pts$pa_id <- as.integer(matched_pts$pa_id)
   matched_pts$status <- as.logical(matched_pts$status)
-  # matched_pts$REP_AREA <- matched_pts$REP_AREA%>% as.numeric()
-  # matched_pts$PA_STATUSYR <- matched_pts$PA_STATUSYR%>% as.integer()
-  # 
-  cols <- c("wwfbiom","wwfecoreg")
-  matched_pts@data[,cols] %<>% lapply(function(x) as.numeric(x))
-  matched_pts@data[,cols][is.na(matched_pts@data[,cols])]<- 0
+  matched_pts$wwfbiom <- as.numeric(matched_pts$wwfbiom)
+  matched_pts$wwfecoreg <- as.numeric(matched_pts$wwfecoreg)
   
-  # #create an empty raster with 1km resolution
-  r <- crop(MCD12Q1, extent(buffer(matched_pts,10000))) 
-  continent <- crop(world_region,extent(buffer(matched_pts,10000)))
+  # Fill NA values with 0
+  matched_pts$wwfbiom[is.na(matched_pts$wwfbiom)] <- 0
+  matched_pts$wwfecoreg[is.na(matched_pts$wwfecoreg)] <- 0
+  
+  # Define the raster extent for cropping
+  buffer_ext <- ext(buffer(matched_pts, 10000))
+  r <- crop(MCD12Q1, buffer_ext)
+  continent <- crop(world_region, buffer_ext)
+  
+  # Assign names to the raster layers
   names(r) <- "pft"
   names(continent) <- "region"
   
-  # padddr <- isoPadddRas(poly=poly,pts=pts, rtemplate = r)
+  # List of fields to rasterize
+  fields <- c("status", "pa_id", "wwfbiom", "wwfecoreg", "UID")
+  rasters <- list()
   
-  matched_ras <- rasterize(matched_pts@coords, r,
-                           field=matched_pts@data[,c("status","pa_id","wwfbiom","wwfecoreg","UID")],background=NA)%>% 
-    stack(r) %>% stack(continent) 
-  # %>% stack(padddr)
+  # Rasterize each field
+  for (field in fields) {
+    r_field <- rasterize(matched_pts, r, field = field)
+    rasters[[field]] <- r_field
+  }
+  
+  # Combine rasters into a SpatRaster stack
+  rasters <- c(rasters, list(pft = r, region = continent))
+  matched_ras <- rast(rasters)
   
   return(matched_ras)
 }
@@ -434,48 +450,34 @@ getmode <- function(v,na.rm) {
 ## UPDATED EXTRACT GEDI
 #######################
 # extract_gedi <- function(matched, mras){
-#     f.path <- '~/GEDI_PA/Matching_Layers/SEN/'
-#     all_gedil2_f <- list.files(file.path(f.path,"SEN_Tiles/*L2A.gpkg"), full.names = FALSE) 
-#     all_gedil4_f <- list.files(file.path(f.path,"SEN_Tiles/*L4A.gpkg",iso3), full.names = FALSE) 
-# #     all_gedil2_f<-st_read('~/GEDI_PA/Matching_Layers/SEN/SEN_Tiles/N14.30728831742391W-13.52951992770953.geojson_L2A.gpkg') 
-# #     all_gedil4_f<-st_read('~/GEDI_PA/Matching_Layers/SEN/SEN_Tiles/N14.30728831742391W-13.52951992770953.geojson_L4A.gpkg') 
+#     gedipath<- file.path("~/shared-buckets/abarenblitt/GEDI_global_PA_v2/")
+#     all_gedil2_f <- list.files(file.path(gedipath,"WDPA_gedi_L2A_tiles/"), full.names = FALSE)
+#     all_gedil4_f <- list.files(file.path(gedipath,"WDPA_gedi_L4A_tiles/"), full.names = FALSE)  
     
     
-#     registerDoParallel(cores=1)
+#     registerDoParallel(cores=1) #_@_@
 #     ex_out <- foreach(this_csvid=seq(length(all_gedil2_f)), 
 #                   .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','raster')) %dopar% {
 #         ##add the GEDI l4a model prediction for AGB here :
 #         cat("Readng in no. ", this_csvid,"csv of ", length(all_gedil2_f),"csvs for iso3",iso3,"\n")
-# #         gedi_l2  <- st_read(all_gedil2_f[this_csvid]) %>%as.data.frame()%>%
-# #             dplyr::select(shot_number,lon_lowestmode, lat_lowestmode,rh25, rh50, rh75,rh90, rh98)
 
-# #         gedi_l4  <- st_read(all_gedil4_f[this_csvid]) %>% as.data.frame()
-# #         if (nrow(gedi_l4) < 1){   #is.na(gedi_l4) || 
-# #           cat("error")
-# #           gedi_l24 <- gedi_l2
-# #           gedi_l24$agbd <- NA
-# #           gedi_l24$agbd_se <- NA
-# #           gedi_l24$agbd_t <- NA
-# #           gedi_l24$agbd_t_se <- NA
-# #         } else {
-# #           gedi_l4_sub <- gedi_l4 %>%
-# #             dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
-# #           gedi_l24 <- inner_join(gedi_l2, gedi_l4_sub, by="shot_number")
-
-# #         }
-#         gedi_l4 <- as.data.frame(all_gedil4_f)
-#         gedi_l2 <- as.data.frame(all_gedil2_f)
-#             if (nrow(gedi_l4) < 1){   #is.na(gedi_l4) || 
+#     # for (this_gedi4 in all_gedil4_f[this_csvid]){
+#             gedil4_f <- as.data.frame(st_read(paste(gedipath,"WDPA_gedi_L4A_tiles/",all_gedil4_f[this_csvid],sep="")))
+#     # }
+#     # for (this_gedi2 in all_gedil2_f[this_csvid]){
+#             gedil2_f <- as.data.frame(st_read(paste(gedipath,"WDPA_gedi_L2A_tiles/",all_gedil2_f[this_csvid],sep="")))
+#     # }
+#             if (nrow(gedil4_f) < 1){   #is.na(gedi_l4) || 
 #               cat("error")
-#               gedi_l24 <- gedi_l2
+#               gedi_l24 <- gedil2_f
 #               gedi_l24$agbd <- NA
 #               gedi_l24$agbd_se <- NA
 #               gedi_l24$agbd_t <- NA
 #               gedi_l24$agbd_t_se <- NA
 #             } else {
-#               gedi_l4_sub <- gedi_l4 %>%
+#               gedi_l4_sub <- gedil4_f %>%
 #                 dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
-#               gedi_l24 <- inner_join(gedi_l2, gedi_l4_sub, by="shot_number")
+#               gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by="shot_number")
 
 #             }
 
@@ -486,7 +488,7 @@ getmode <- function(v,na.rm) {
 #                 SpatialPointsDataFrame(coords=.[,c("lon_lowestmode","lat_lowestmode")],
 #                                      proj4string=CRS("+init=epsg:4326"), data=.) %>%spTransform(., CRS("+init=epsg:6933"))
 
-#             matched_gedi <- raster::extract(mras,gedi_l24_sp, df=TRUE)
+#             matched_gedi <- terra::extract(mras,vect(gedi_l24_sp), df=TRUE)
 #             matched_gedi_metrics <- cbind(matched_gedi,gedi_l24_sp@data)
 #             matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
 #               convertFactor(matched0 = matched,exgedi = .) 
@@ -498,75 +500,159 @@ getmode <- function(v,na.rm) {
 #         return(iso_matched_gedi_df)
 # }
     
-#     stopImplicitCluster()
+#     stopImplicitCluster() #_@_@
 #     cat("Done GEDI for no. ",grep(unique(matched$pa_id), matched_PAs),"pa out of", length(matched_PAs),"\n")
 #     return(ex_out)
     
-# }                                      
+# } 
+
+ #*********************
+ # NON PARALLEL VERSION
+ # ********************
       
-extract_gedi <- function(matched, mras){
-    f.path <- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
-
-    gedi_results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                            Prefix=paste0(f.path,'WDPA_gedi_L2A_tiles'))
-    all_gedil2_f <- sapply(matched_results$Contents, function(x) {x$Key})
-    pattern=paste("L2A",gediwk,sep="")
-    all_gedil2_f  <- grep(pattern, all_gedil2_f, value=TRUE)
-
-    gedi_results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                            Prefix=paste0(f.path,'WDPA_gedi_L4A_tiles'))
-    all_gedil4_f <- sapply(matched_results$Contents, function(x) {x$Key})
-    pattern=paste("L4A",gediwk,sep="")
-    all_gedil4_f  <- grep(pattern, all_gedil4_f, value=TRUE)
+# extract_gedi <- function(matched, mras){
+#     gedipath<- file.path("~/shared-buckets/abarenblitt/GEDI_global_PA_v2/")
+#     all_gedil2_f <- list.files(file.path(gedipath,"WDPA_gedi_L2A_tiles/"), full.names = FALSE)
+#     all_gedil4_f <- list.files(file.path(gedipath,"WDPA_gedi_L4A_tiles/"), full.names = FALSE)   
            
-    ex_out <- foreach(this_csvid=seq(length(all_gedil2_f)), 
-                  .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','raster')) %dopar% {
-        ##add the GEDI l4a model prediction for AGB here :
-        cat("Readng in no. ", this_csvid,"csv of ", length(all_gedil2_f),"csvs for iso3",iso3,"\n")
+#     ex_out <- foreach(this_csvid=seq(length(all_gedil2_f)), 
+#                   .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','raster')) %do% {
+#         ##add the GEDI l4a model prediction for AGB here :
+#         cat("Readng in no. ", this_csvid,"csv of ", length(all_gedil2_f),"csvs for iso3",iso3,"\n")
 
-    for (this_gedi4 in all_gedil4_f[this_csvid]){
-            gedil4_f <- as.data.frame(st_read(this_gedi4))}
-    for (this_gedi2 in all_gedil2_f[this_csvid]){
-            gedil2_f <- as.data.frame(st_read(this_gedi2))}
-            if (nrow(gedil4_f) < 1){   #is.na(gedi_l4) || 
-              cat("error")
-              gedi_l24 <- gedil2_f
-              gedi_l24$agbd <- NA
-              gedi_l24$agbd_se <- NA
-              gedi_l24$agbd_t <- NA
-              gedi_l24$agbd_t_se <- NA
-            } else {
-              gedi_l4_sub <- gedil4_f %>%
-                dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
-              gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by="shot_number")
+#     # for (this_gedi4 in all_gedil4_f[this_csvid]){
+#             gedil4_f <- as.data.frame(st_read(paste(gedipath,"WDPA_gedi_L4A_tiles/",all_gedil4_f[this_csvid],sep="")))
+#     # }
+#     # for (this_gedi2 in all_gedil2_f[this_csvid]){
+#             gedil2_f <- as.data.frame(st_read(paste(gedipath,"WDPA_gedi_L2A_tiles/",all_gedil2_f[this_csvid],sep="")))
+#     # }
+#             if (nrow(gedil4_f) < 1){   #is.na(gedi_l4) || 
+#               cat("error")
+#               gedi_l24 <- gedil2_f
+#               gedi_l24$agbd <- NA
+#               gedi_l24$agbd_se <- NA
+#               gedi_l24$agbd_t <- NA
+#               gedi_l24$agbd_t_se <- NA
+#             } else {
+#               gedi_l4_sub <- gedil4_f %>%
+#                 dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
+#               gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by="shot_number")
 
-            }
+#             }
 
-        print(dim(gedi_l24))
-        iso_matched_gedi_df <- data.frame()
-        if(nrow(gedi_l24)>0){
-            gedi_l24_sp <- gedi_l24 %>% 
-                SpatialPointsDataFrame(coords=.[,c("lon_lowestmode","lat_lowestmode")],
-                                     proj4string=CRS("+init=epsg:4326"), data=.) %>%spTransform(., CRS("+init=epsg:6933"))
+#         print(dim(gedi_l24))
+#         iso_matched_gedi_df <- data.frame()
+#         if(nrow(gedi_l24)>0){
+#             gedi_l24_sp <- gedi_l24 %>% 
+#                 SpatialPointsDataFrame(coords=.[,c("lon_lowestmode","lat_lowestmode")],
+#                                      proj4string=CRS("+init=epsg:4326"), data=.) %>%spTransform(., CRS("+init=epsg:6933"))
 
-            matched_gedi <- raster::extract(mras,gedi_l24_sp, df=TRUE)
-            matched_gedi_metrics <- cbind(matched_gedi,gedi_l24_sp@data)
-            matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
-              convertFactor(matched0 = matched,exgedi = .) 
+#             matched_gedi <- terra::extract(mras,vect(gedi_l24_sp), df=TRUE)
+#             matched_gedi_metrics <- cbind(matched_gedi,gedi_l24_sp@data)
+#             matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
+#               convertFactor(matched0 = matched,exgedi = .) 
+
+#             iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
+#             print(dim(iso_matched_gedi_df))
+#         }
+
+#         return(iso_matched_gedi_df)
+# }
+    
+#     # stopImplicitCluster()
+#     cat("Done GEDI for no. ",grep(unique(matched$pa_id), matched_PAs),"pa out of", length(matched_PAs),"\n")
+#     return(ex_out)
+    
+# }                                   
+############################################################################################   
+ #*********************
+ # SUBSET OF GEDI TEST
+ # ********************
+                                      
+extract_gedi <- function(matched, mras){
+    results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2A_tiles/",sep=""))
+    all_gedil2_f <- sapply(results$Contents, function(x) {x$Key})
+    pattern=paste(".gpkg",sep="")
+    all_gedil2_f <- grep(pattern, all_gedil2_f, value=TRUE)
+    all_gedil2_f <- basename(all_gedil2_f)#[4:6] #Currently specifying working files
+    
+    results4 <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                                Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep=""))
+    all_gedil4_f <- sapply(results4$Contents, function(x) {x$Key})
+    pattern4=paste(".gpkg",sep="")
+    all_gedil4_f <- grep(pattern4, all_gedil4_f, value=TRUE)
+    all_gedil4_f <- basename(all_gedil4_f)#[4:6] #Currently specifying working files
+  
+    # Initialize an empty list to store results
+    results_list <- list()
+    iso_matched_gedi_df <- NULL # Initialize before loop
+
+            # Iterate over the sequence of indices for your files
+    for (this_csvid in seq_along(all_gedil2_f)) {
+                cat("Reading in no. ", this_csvid, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
+                
+                # Read GEDI L4A data
+                gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/", all_gedil4_f[this_csvid], sep = "")
+                gedil4_f <- as.data.frame(st_read(gedil4_f_path))
+                
+                # Read GEDI L2A data
+                gedil2_f_path <- paste(gedipath, "WDPA_gedi_L2A_tiles/", all_gedil2_f[this_csvid], sep = "")
+                gedil2_f <- as.data.frame(st_read(gedil2_f_path))
+            
+                # Check if GEDI L4A data is empty
+                if (nrow(gedil4_f) < 1) {
+                    cat("Error: No data for GEDI L4A\n")
+                    gedi_l24 <- gedil2_f
+                    gedi_l24$agbd <- NA
+                    gedi_l24$agbd_se <- NA
+                    gedi_l24$agbd_t <- NA
+                    gedi_l24$agbd_t_se <- NA
+                } else {
+                    # Select relevant columns from GEDI L4A
+                    gedi_l4_sub <- gedil4_f %>%
+                        dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
+                    
+                    # Join with GEDI L2A data
+                    gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by = "shot_number")
+                }
+            
+                print(dim(gedi_l24))
+            
+                # Initialize empty spatial object for the current iteration
+                gedi_l24_sp <- NULL
+            
+                # Convert to spatial points data frame if there is data
+                if (nrow(gedi_l24) > 0) {
+                    gedi_l24_sp <- SpatialPointsDataFrame(
+                        coords = gedi_l24[, c("lon_lowestmode", "lat_lowestmode")],
+                        data = gedi_l24,
+                        proj4string = CRS("+init=epsg:4326")
+                    ) %>% spTransform(CRS("+init=epsg:6933"))
+                matched_gedi <- terra::extract(mras,vect(gedi_l24_sp), df=TRUE)
+                matched_gedi_metrics <- cbind(matched_gedi,gedi_l24_sp@data)
+                matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
+                convertFactor(matched0 = matched,exgedi = .) 
 
             iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
             print(dim(iso_matched_gedi_df))
-        }
-
-        return(iso_matched_gedi_df)
+         }
+        
+        # Store results in a list
+        results_list[[this_csvid]] <- iso_matched_gedi_df
+    }
+    
+    # Combine all results
+    if (!is.null(iso_matched_gedi_df)) {
+        iso_matched_gedi_df <- do.call(rbind, results_list)
+    }
+    
+    cat("Done GEDI processing\n")
+    return(iso_matched_gedi_df)
 }
-    
-    stopImplicitCluster()
-    cat("Done GEDI for no. ",grep(unique(matched$pa_id), matched_PAs),"pa out of", length(matched_PAs),"\n")
-    return(ex_out)
-    
-}                                    
-############################################################################################                                      
+
+############################################################################################   
+                                      
 
 SplitRas <- function(raster,ppside){
   h        <- ceiling(ncol(raster)/ppside)
@@ -577,7 +663,7 @@ SplitRas <- function(raster,ppside){
   names(agg_poly) <- "polis"
   r_list <- list()
   for(i in 1:ncell(agg)){
-    e1          <- extent(agg_poly[agg_poly$polis==i,])
+    e1          <- ext(agg_poly[agg_poly$polis==i,])
     r_list[[i]] <- crop(raster,e1)
   }
   return(r_list)
