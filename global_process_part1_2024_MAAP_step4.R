@@ -84,12 +84,13 @@ f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 testPAs_fileindex <- read.csv(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs_fileindex.csv",sep="")))
 d_PAs <- testPAs_fileindex[!is.na(testPAs_fileindex[,"filename"]),]$filename
 
-registerDoParallel(mproc)
+#registerDoParallel(mproc)
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
 startTime <- Sys.time()
 #d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
 
-foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) %dopar% {
+foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) #%dopar% {   ###try running without parallelization (%dopar% → %do%) to see if the issue is with parallelization
+%do% {
   pa <- this_pa
   #id_pa <- pa %>%str_split("_") %>% unlist %>% .[[3]]
   id_pa <- this_pa%>%readr::parse_number() %>% unique() #%>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
@@ -262,7 +263,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
 
 tElapsed <- Sys.time()-startTime
 # cat(tElapsed, "for matching all PAs in", iso3,"\n")
-stopImplicitCluster()
+#stopImplicitCluster()
 cat("Done matching for",iso3,". Finishing...\n")
 
 # Write the list of filenames to a CSV file
