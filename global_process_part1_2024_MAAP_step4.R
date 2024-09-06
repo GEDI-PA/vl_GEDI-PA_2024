@@ -89,8 +89,7 @@ d_PAs <- testPAs_fileindex[!is.na(testPAs_fileindex[,"filename"]),]$filename
 startTime <- Sys.time()
 #d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
 
-foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) #%dopar% {   ###try running without parallelization (%dopar% → %do%) to see if the issue is with parallelization
-%do% {
+foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) %do% {
   pa <- this_pa
   #id_pa <- pa %>%str_split("_") %>% unlist %>% .[[3]]
   id_pa <- this_pa%>%readr::parse_number() %>% unique() #%>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
