@@ -179,7 +179,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
     
     #saveRDS(pa_match, file=paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
     saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
-    s3saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
+    #s3saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     
   # Append the filename to the list
 #  matched_PA <- c(matched_PA, output_filename)
