@@ -79,6 +79,7 @@ d_control_local <- d_control_local[complete.cases(d_control_local), ]  #filter a
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 testPAs_fileindex <- read.csv(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs_fileindex.csv",sep="")))
 d_PAs <- testPAs_fileindex[!is.na(testPAs_fileindex[,"filename"]),]$filename
+dir.create(file.path(paste("output/WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
 
 registerDoParallel(mproc)
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
@@ -89,7 +90,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   pa <- this_pa
   #id_pa <- pa %>%str_split("_") %>% unlist %>% .[[3]]
   id_pa <- this_pa%>%readr::parse_number() %>% unique() #%>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
-  # cat(id_pa, "in",iso3,"\n")
+  cat(id_pa, "in",iso3,"\n")
   cat("No.", match(pa,d_PAs),"of total",length(d_PAs),"PAs in ", iso3, "\n" )
   #d_pa <- readRDS(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/",pa, sep=""))
   d_pa <- readRDS(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/",pa, sep="")))
@@ -104,11 +105,11 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   ids_all0 <- tryCatch(d_control_all$UID, error=function(e) return(NA))
   ids_all <- d_control_all$UID
   set.seed(125)
-  # cat("Using number of cores:",getDoParWorkers(),"\n")
+  cat("Using number of cores:",getDoParWorkers(),"\n")
   N <- ceiling(nrow(d_wocat_all)/300)
   l <- tryCatch(split(d_wocat_all, sample(1:N, nrow(d_wocat_all), replace=TRUE)),error=function(e) return(NULL))
   # l <- tryCatch(split(d_wocat_all, (as.numeric(rownames(d_wocat_all))-1) %/% 300),error=function(e) return(0))
-   
+  
 #  if (length(l)<50 && length(l)>0 ){
   if (length(l)>0 ){
     pa_match <- data.frame()
@@ -128,7 +129,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       tryCatch(
         while(n_matches < n_treatment){
           n_ids <- length(ids_all)
-          #cat("n ids",n_ids,"\n")
+          cat("n ids",n_ids,"\n")
           if(n_ids > n_sample){
             set.seed(125)
             sample_ids_bar <- sample(ids_all, n_sample)
@@ -174,13 +175,12 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
     pa_match <- NULL
   }
 
-    #output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
     output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
-    
-    #saveRDS(pa_match, file=paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
-    saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
+    saveRDS(pa_match, file=paste("output/WDPA_matching_results/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
+    #saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     #s3saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     
+  
   # Append the filename to the list
 #  matched_PA <- c(matched_PA, output_filename)
 #  print(output_filename)
@@ -190,10 +190,6 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   return(NULL)
 }
 
-tElapsed <- Sys.time()-startTime
-# cat(tElapsed, "for matching all PAs in", iso3,"\n")
-stopImplicitCluster()
-cat("Done matching for",iso3,". Finishing...\n")
 
 # Write the list of filenames to a CSV file
 #output_filenames$matched_PA <- matched_PA
