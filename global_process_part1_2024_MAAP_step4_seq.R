@@ -79,7 +79,7 @@ d_control_local <- d_control_local[complete.cases(d_control_local), ]  #filter a
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 testPAs_fileindex <- read.csv(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs_fileindex.csv",sep="")))
 d_PAs <- testPAs_fileindex[!is.na(testPAs_fileindex[,"filename"]),]$filename
-dir.create(file.path(paste("output/WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
+dir.create(file.path(paste("output/",iso3,"_wk",gediwk,"/",sep="")))
 
 registerDoParallel(mproc)
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
@@ -105,7 +105,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   ids_all0 <- tryCatch(d_control_all$UID, error=function(e) return(NA))
   ids_all <- d_control_all$UID
   set.seed(125)
-  cat("Using number of cores:",getDoParWorkers(),"\n")
+  #cat("Using number of cores:",getDoParWorkers(),"\n")
   N <- ceiling(nrow(d_wocat_all)/300)
   l <- tryCatch(split(d_wocat_all, sample(1:N, nrow(d_wocat_all), replace=TRUE)),error=function(e) return(NULL))
   # l <- tryCatch(split(d_wocat_all, (as.numeric(rownames(d_wocat_all))-1) %/% 300),error=function(e) return(0))
@@ -176,7 +176,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   }
 
     output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
-    saveRDS(pa_match, file=paste("output/WDPA_matching_results/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
+    saveRDS(pa_match, file=paste("output/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
     #saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     #s3saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     
