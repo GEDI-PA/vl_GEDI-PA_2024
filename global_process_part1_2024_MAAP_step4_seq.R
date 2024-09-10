@@ -112,6 +112,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   
 #  if (length(l)<50 && length(l)>0 ){
   if (length(l)>0 ){
+    cat("length(l) > 0")
     pa_match <- data.frame()
     for (pa_c in 1:length(l)){
       ids_all <- d_control_all$UID
@@ -171,12 +172,14 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       pa_match <- rbind(pa_match,match_score)
     }
 #  } else if (length(l)>=900){
-  } else{
+  } else {
+    cat("length(l) = 0")
     pa_match <- NULL
   }
 
     output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
-    saveRDS(pa_match, file=paste("output/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
+    #saveRDS(pa_match, file=paste("output/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
+    saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     #saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     #s3saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
     
