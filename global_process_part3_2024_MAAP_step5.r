@@ -1,18 +1,35 @@
 #When running Rscript, install these packages first
 #conda install -c conda-forge r-paws r-terra r-optmatch r-sp r-sf r-rgeos r-dplyr r-plyr r-ggplot2 r-mapview r-stringr r-maptools r-gridExtra r-lattice r-MASS r-foreach r-doParallel r-rlang r-tidyr r-magrittr r-aws.s3 r-rgeos r-rlemon r-svd r-sparsem r-survival
 
-options(repos = c(CRAN = "https://cloud.r-project.org"))
+gediwk <- 24
+mproc <- 2
 
-# List of CRAN packages to be installed
-cran_packages <- c(
-  "s3","optmatch", "RItools"
-)
+#-------------------------------------------------------------------------------
+args = commandArgs(trailingOnly=TRUE)
+if (length(args)==0) {
+  stop("At least one argument must be supplied (input file).n", call.=FALSE)
+} else if (length(args)>=1) {
+  
+  iso3 <- args[1]  #country to process
+  out <- args[2]
+  #gediwk <- args[2]   #the # of weeks GEDI data to use
+  # mproc <- as.integer(args[2])  #the number of cores to use for matching
+}
+#-------------------------------------------------------------------------------
 
-# Install CRAN packages
-install.packages(cran_packages, dependencies = TRUE)
 
-options(warn=-1)
-options(dplyr.summarise.inform = FALSE)
+# options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# # List of CRAN packages to be installed
+# cran_packages <- c(
+#   "s3","optmatch", "RItools"
+# )
+
+# # Install CRAN packages
+# install.packages(cran_packages, dependencies = TRUE)
+
+# options(warn=-1)
+# options(dplyr.summarise.inform = FALSE)
 
 packages <- c("sp","sf","rgeos","dplyr","plyr","ggplot2","mapview","stringr","terra",
               "maptools","gridExtra","lattice","MASS","foreach","optmatch","doParallel","RItools",
@@ -29,7 +46,7 @@ gediwk<-24
 
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
-f.path3<- "~/output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
+f.path3<- file.path(out,"WDPA_matching_results/") #Rename folder to "output" since DPS looks for this, move up in the as default but allow an argument to change output file
 
 
 source("matching_func_2024.r")
@@ -154,7 +171,7 @@ for (this_rds in matched_PAs) {
     
     # Extract GEDI data with error handling
     iso_matched_gedi <- tryCatch({
-        extract_gedi(matched = matched, mras = mras)
+        extract_gedi2b(matched = matched, mras = mras)
     }, error = function(e) {
         cat("Error extracting GEDI data for PA", id_pa, ":", e$message, "\n")
         return(NULL)
