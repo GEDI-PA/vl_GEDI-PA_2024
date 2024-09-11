@@ -32,7 +32,7 @@ if (length(args)==0) {
 # options(dplyr.summarise.inform = FALSE)
 
 packages <- c("sp","sf","rgeos","dplyr","plyr","ggplot2","mapview","stringr","terra",
-              "maptools","gridExtra","lattice","MASS","foreach","optmatch","doParallel","RItools",
+              "foreach","optmatch","doParallel","RItools",
               "rlang","tidyr","magrittr","aws.s3","s3")
 
 package.check <- lapply(packages, FUN = function(x) {
