@@ -41,7 +41,7 @@ package.check <- lapply(packages, FUN = function(x) {
 
 s3 <- paws::s3()
 
-iso3<- "GNB"
+# iso3<- "GNB"
 gediwk<-24
 
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
@@ -128,7 +128,6 @@ if(flag=="run all"){  #determine how many PAs to run the extraction process
 
 ## Changed error catching and loop now works ##
 #Sep 9 2024, code works but needs to be updated for running as DPS
-matched_PAs<-matched_PAs[8:10] #Currently have to subset data to get it to run without crashing
 
 for (this_rds in matched_PAs) {
     
