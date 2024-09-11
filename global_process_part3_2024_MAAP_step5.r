@@ -45,7 +45,7 @@ s3 <- paws::s3()
 gediwk<-24
 
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
-gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+f.path2 <- file.path("~/output/WDPA_matching_results/")
 f.path3<- file.path(out,"WDPA_matching_results/") #Rename folder to "output" since DPS looks for this, move up in the as default but allow an argument to change output file
 
 
@@ -82,7 +82,7 @@ flag <- "run all"
 # if (file.exists(paste(f.path,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_gedi_extracted_matching_wk",gediwk,".RDS", sep=""))){
 cat(paste("Step 5: Performing WK ",gediwk,"GEDI extraction for", iso3,"\n"))
 #matched_all <-read.csv(paste(f.path,"WDPA_extract4_residual_PAs/", iso3, "_wk_", gediwk, "_null_matches_rerun.csv",sep="")) 
-matched_all<-list.files(paste(f.path3,iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = TRUE)
+matched_all<-list.files(paste(f.path2,iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = TRUE)
 matched_all
 
 matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %do% {   #non-NA matched results
@@ -93,7 +93,7 @@ matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','mag
   } else {
     id_pa <- basename(this_rds)%>%readr::parse_number() %>% unique()
   }
-  matched <- readRDS(paste(f.path3,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+  matched <- readRDS(paste(f.path2,iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
   if(!is.null(matched)){
     if(nrow(matched)!=0){
       matched_PAs=c(matched_PAs,this_rds) 
@@ -111,7 +111,7 @@ if(flag=="run all"){  #determine how many PAs to run the extraction process
   cat("Step 5: runing extraction on all", length(matched_PAs),"of non-NA matched results in", iso3,"\n")
 } else if (flag=="run remaining"){
   pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
-  extracted_PAid <- list.files(paste(f.path3,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",sep=""), full.names = F, pattern=paste0(pattern1, collapse="|"))%>%
+  extracted_PAid <- list.files(paste(f.path2,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",sep=""), full.names = F, pattern=paste0(pattern1, collapse="|"))%>%
     readr::parse_number() %>% unique()
   matched_PA_id <- matched_PAs %>% readr::parse_number()
   runPA_id <- matched_PA_id[!(matched_PA_id %in% extracted_PAid)]
@@ -135,7 +135,7 @@ for (this_rds in matched_PAs) {
     id_pa <- basename(this_rds) %>% readr::parse_number() %>% unique()
     
     # Construct the path to read the RDS file
-    rds_path <- paste(f.path3, iso3, "_wk", gediwk, "/", iso3, "_pa_", id_pa, "_matching_results_wk24.RDS", sep = "")
+    rds_path <- paste(f.path2, iso3, "_wk", gediwk, "/", iso3, "_pa_", id_pa, "_matching_results_wk24.RDS", sep = "")
     
     # Read the RDS file with error handling
     matched <- tryCatch({
