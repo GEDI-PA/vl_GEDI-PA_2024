@@ -450,13 +450,15 @@ extract_gedi <- function(matched, mras, iso3){
       
                 # Read GEDI L4A data
                 gedil4_f_path <- paste(f.path, "WDPA_gedi_L4A_tiles/", all_gedil4_f[this_csvid], sep = "")
-                gedil4_f <- as.data.frame(st_read(s3_get(gedil4_f_path)))
+                #gedil4_f <- as.data.frame(st_read(s3_get(gedil4_f_path)))
                 #gedil4_f <- as.data.frame(st_read((gedil4_f_path)))
+                gedil4_f <- vect(s3_get(gedil4_f_path))
                 
                 # Read GEDI L2A data
                 gedil2_f_path <- paste(f.path, "WDPA_gedi_L2A_tiles/", all_gedil2_f[this_csvid], sep = "")
-                gedil2_f <- as.data.frame(st_read(s3_get(gedil2_f_path)))
+                #gedil2_f <- as.data.frame(st_read(s3_get(gedil2_f_path)))
                 #gedil2_f <- as.data.frame(st_read((gedil2_f_path)))
+                gedil2_f <- vect(s3_get(gedil2_f_path))
                 
                 # Check if GEDI L4A data is empty
                 if (nrow(gedil4_f) < 1) {
@@ -468,10 +470,12 @@ extract_gedi <- function(matched, mras, iso3){
                     gedi_l24$agbd_t_se <- NA
                 } else {
                     # Select relevant columns from GEDI L4A
-                    gedi_l4_sub <- gedil4_f %>% dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
+                    #gedi_l4_sub <- gedil4_f %>% dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
+                    gedi_l4_sub <- gedil4_f[, c("shot_number","agbd","agbd_se","agbd_t","agbd_t_se")]
                     
                     # Join with GEDI L2A data
-                    gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by = "shot_number")
+                    #gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by = "shot_number")
+                    gedi_l24 <- merge(gedil2_f, gedi_l4_sub, by = "shot_number")
                 }
             
                 print(dim(gedi_l24))
@@ -487,7 +491,8 @@ extract_gedi <- function(matched, mras, iso3){
                 #        data = gedi_l24,
                 #        proj4string = CRS("+init=epsg:4326")
                 #    ) %>% spTransform(CRS("+init=epsg:6933"))
-                gedi_l24_sp <- vect(gedi_l24, geom=c("lon_lowestmode", "lat_lowestmode"), crs="epsg:4326")
+                #gedi_l24_sp <- vect(gedi_l24, geom=c("lon_lowestmode", "lat_lowestmode"), crs="epsg:4326")
+                gedi_l24_sp <- gedi_l24
                 gedi_l24_sp <- project(gedi_l24_sp, "epsg:6933")
                 
                 #matched_gedi <- terra::extract(mras,vect(gedi_l24_sp), df=TRUE)
