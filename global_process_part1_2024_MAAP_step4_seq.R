@@ -74,12 +74,36 @@ source(s3_get(paste(f.path,"matching_func_2024.R",sep="")))
 d_control_local <- readRDS(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep="")))
 d_control_local <- d_control_local[complete.cases(d_control_local), ]  #filter away non-complete cases w/ NA in control set
 
-###dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
-#dir.create(file.path(paste("output/",iso3,"_wk",gediwk,"/",sep="")))
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 testPAs_fileindex <- read.csv(s3_get(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs_fileindex.csv",sep="")))
 d_PAs <- testPAs_fileindex[!is.na(testPAs_fileindex[,"filename"]),]$filename
-dir.create(file.path(paste("output/",iso3,"_wk",gediwk,"/",sep="")))
+print(length(d_PAs))
+
+#f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+if(!dir.exists(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){
+  cat("Matching result dir does not EXISTS\n")
+#  dir.create(file.path(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep="")))
+  dir.create(file.path(paste("output/",iso3,"_wk",gediwk,"/",sep="")))
+#  d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+  d_PAs <- testPAs_fileindex[!is.na(testPAs_fileindex[,"filename"]),]$filename
+
+} else if (dir.exists(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""))){   #if matching result folder exists, check for any PAs w/o matched results
+  pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
+  matched_PAid <- list.files(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",sep=""), full.names = FALSE, pattern=paste0(pattern1, collapse="|"))%>%
+    readr::parse_number() %>% unique()
+  #d_PAs <- list.files(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs/", sep=""), pattern=paste("wk",gediwk,sep=""), full.names=FALSE)
+  d_PAs <- testPAs_fileindex[!is.na(testPAs_fileindex[,"filename"]),]$filename
+  d_PA_id <- d_PAs %>% readr::parse_number()
+  runPA_id <- d_PA_id[!(d_PA_id %in% matched_PAid)]
+  if (length(runPA_id)>0){
+    Pattern2 <-  paste(runPA_id, collapse="|")
+    runPA <-  d_PAs[grepl(Pattern2,d_PAs)]
+    d_PAs <- runPA
+  } else {
+    d_PAs <- NULL
+  }
+}
+print(length(d_PAs))
 
 registerDoParallel(mproc)
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
@@ -105,14 +129,14 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   ids_all0 <- tryCatch(d_control_all$UID, error=function(e) return(NA))
   ids_all <- d_control_all$UID
   set.seed(125)
-  #cat("Using number of cores:",getDoParWorkers(),"\n")
+  cat("Using number of cores:",getDoParWorkers(),"\n")
   N <- ceiling(nrow(d_wocat_all)/300)
   l <- tryCatch(split(d_wocat_all, sample(1:N, nrow(d_wocat_all), replace=TRUE)),error=function(e) return(NULL))
   # l <- tryCatch(split(d_wocat_all, (as.numeric(rownames(d_wocat_all))-1) %/% 300),error=function(e) return(0))
-  
+  cat("length(l) = ",length(l),"\n")
+
 #  if (length(l)<50 && length(l)>0 ){
   if (length(l)>0 ){
-    cat("length(l) > 0")
     pa_match <- data.frame()
     for (pa_c in 1:length(l)){
       ids_all <- d_control_all$UID
@@ -172,24 +196,24 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       pa_match <- rbind(pa_match,match_score)
     }
 #  } else if (length(l)>=900){
-  } else {
-    cat("length(l) = 0")
+  } else{
+    cat("length(l) !> 0 ","\n")
     pa_match <- NULL
   }
 
     output_filename <- paste(iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
-    saveRDS(pa_match, file=paste("output/",iso3,"_wk",gediwk,"/",output_filename, sep=""))
+    print(output_filename)
+    saveRDS(pa_match, file=paste("output/",iso3,"_wk",gediwk,"/", output_filename, sep=""))
     #saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
-    #s3saveRDS(pa_match, file=paste("output/",output_filename, sep=""))
-    
+    #s3saveRDS(pa_match, file=paste("output/",output_filename, sep=""))    
   
   # Append the filename to the list
-#  matched_PA <- c(matched_PA, output_filename)
-#  print(output_filename)
+  #  matched_PA <- c(matched_PA, output_filename)
+  #  print(output_filename)
                                        
   cat("Results exported for PA", id_pa, "\n")
-  rm(pa_match)
-  return(NULL)
+#  rm(pa_match)
+#  return(NULL)
 }
 
 
