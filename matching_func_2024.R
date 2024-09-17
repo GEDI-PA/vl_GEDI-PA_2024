@@ -443,7 +443,7 @@ extract_gedi <- function(matched, mras, iso3){
 
   # Iterate over the sequence of indices for your files
   for (this_csvid in seq_along(all_gedil2_f)) {
-                cat("Reading in no. ", this_csvid, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
+                cat("Reading in no. ", this_csvid, "GPKG of ", length(all_gedil2_f), "GPKGs for iso3", iso3, "\n")
                 
                 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
                 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
@@ -480,6 +480,9 @@ extract_gedi <- function(matched, mras, iso3){
             
                 print(dim(gedi_l24))
                 print(nrow(gedi_l24))
+
+                rm(gedil4_f)
+                rm(gedil2_f)
             
                 # Initialize empty spatial object for the current iteration
                 gedi_l24_sp <- NULL
@@ -504,6 +507,11 @@ extract_gedi <- function(matched, mras, iso3){
 
             iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered, iso_matched_gedi_df)
             print(dim(iso_matched_gedi_df))
+
+            rm(gedi_l24)
+            rm(gedi_l24_sp)
+            rm(matched_gedi)
+            rm(matched_gedi_metrics)
          }
         
         # Store results in a list
