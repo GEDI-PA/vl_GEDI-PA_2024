@@ -154,7 +154,8 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
                         cat("Matched result is likely null for country", iso3,"pa", id_pa, "dimension of the match is", dim(matched),"\n")
                         return(NULL)}) #convert the macthed df to a raster stack 
     print(table(mras$status[]))
-    
+    cat("Rasterized results are balanced for PA", id_pa, "\n")
+      
     if(table(mras$status[])[2]==0 | table(mras$status[])[1]==0 | is.null(mras)){
       cat("Rasterized results unbalanced for PA", id_pa, "quitting...\n")
     } else {

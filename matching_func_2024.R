@@ -460,7 +460,7 @@ extract_gedi <- function(matched, mras, iso3){
                 #gedil2_f <- as.data.frame(st_read((gedil2_f_path)))
                 gedil2_f <- vect(s3_get(gedil2_f_path))
 
-                gedi_l2_sub <- gedil2_f[,c("pa_id", "status", "shot_number", "lat_lowestmode", "lon_lowestmode", "wwfbiom", "wwfecoreg", "pft", "region", "rh25", "rh50", "rh75", "rh98")]
+                gedi_l2_sub <- gedil2_f[,c("filename", "shot_number", "lat_lowestmode", "lon_lowestmode", "rh25", "rh50", "rh75", "rh98")]
 
                 rm(gedil2_f)
       
@@ -485,6 +485,7 @@ extract_gedi <- function(matched, mras, iso3){
                 }
             
                 cat("GEDI dataframe for ", this_tile, "GPKG file has", nrow(gedi_l24), "rows and ", ncol(gedi_l24), "columns", "\n")
+                print(names(gedi_l24))
                 #print(dim(gedi_l24))
                 #print(nrow(gedi_l24))
 
