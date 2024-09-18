@@ -485,7 +485,7 @@ extract_gedi <- function(matched, mras, iso3){
                 }
             
                 cat("GEDI dataframe for ", this_tile, "GPKG file has", nrow(gedi_l24), "rows and ", ncol(gedi_l24), "columns", "\n")
-                print(names(gedi_l24))
+                #print(names(gedi_l24))
                 #print(dim(gedi_l24))
                 #print(nrow(gedi_l24))
 

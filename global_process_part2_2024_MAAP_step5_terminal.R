@@ -164,9 +164,10 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
       iso_matched_gedi <- extract_gedi(matched=matched, mras=mras, iso3=iso3)
       tElapsed <- Sys.time()-startTime
       cat(tElapsed, "for extracting all PAs in", iso3,"\n")
-#      iso_matched_gedi <-  iso_matched_gedi %>%
-#            dplyr::select("pa_id","status","shot_number", "lat_lowestmode", "lon_lowestmode", "wwfbiom","wwfecoreg",
-#                          "pft","region", "rh25", "rh50", "rh75","rh90", "rh98", "agbd", "agbd_se")
+      iso_matched_gedi <-  iso_matched_gedi %>%
+            dplyr::select("pa_id","status","wwfbiom","wwfecoreg","pft","region",
+                          "shot_number","filename","lat_lowestmode","lon_lowestmode",
+                          "rh25","rh50","rh75","rh98","agbd","agbd_se")
     if (length(unique(iso_matched_gedi$wwfbiom)) >1){
         pabiome <- iso_matched_gedi$wwfbiom %>% unique() %>% gsub("\\b(\\p{L})\\p{L}{2,}|.","\\U\\1",.,perl = TRUE)%>% str_c( collapse = "+")
     } else if (length(unique(iso_matched_gedi$wwfbiom))==1){

@@ -71,8 +71,9 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 #source(s3_get(paste(f.path,"matching_func.R",sep="")))
 source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
 
-flag <- "run all"
+#flag <- "run all"
 #flag <- "run remaining"
+
 
 #---------------STEP5. GEDI PROCESSING ---------------- 
 #using GEDI shots to extract the treatment/control status, also extract the MODIS PFT for AGB prediction
@@ -104,6 +105,12 @@ matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','mag
 }
 print(length(matched_PAs))
 
+#f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+#f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+
+flag <- "run all"
+#flag <- "run remaining"
+
 if(flag=="run all"){  #determine how many PAs to run the extraction process
   matched_PAs <- matched_PAs
   cat("Step 5: running extraction on all", length(matched_PAs),"of non-NA matched results in", iso3,"\n")
@@ -117,12 +124,14 @@ if(flag=="run all"){  #determine how many PAs to run the extraction process
     Pattern2 <-  paste(runPA_id, collapse="|")
     runPA <-  matched_PAs[grepl(Pattern2,matched_PAs)]
     # runPA_ind <- str_detect(matched_PAs, paste(runPA_id, collapse = "|"))
-    matched_PAs <-runPA
+    matched_PAs <- runPA
   } else {
     matched_PAs <- NULL
     cat("Step 5 already done for", iso3, "\n")
   }
 }
+
+print(length(matched_PAs))  ##remaining PAs to be extracted
 
 registerDoParallel(cores=round(mproc))
 getDoParWorkers()
@@ -143,6 +152,7 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
                         cat("Matched result is likely null for country", iso3,"pa", id_pa, "dimension of the match is", dim(matched),"\n")
                         return(NULL)}) #convert the macthed df to a raster stack 
     print(table(mras$status[]))
+    cat("Rasterized results are balanced for PA", id_pa, "\n")
     
     if(table(mras$status[])[2]==0 | table(mras$status[])[1]==0 | is.null(mras)){
       cat("Rasterized results unbalanced for PA", id_pa, "quitting...\n")
@@ -152,9 +162,10 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
       iso_matched_gedi <- extract_gedi(matched=matched, mras=mras, iso3=iso3)
       tElapsed <- Sys.time()-startTime
       cat(tElapsed, "for extracting all PAs in", iso3,"\n")
-#      iso_matched_gedi <-  iso_matched_gedi %>%
-#            dplyr::select("pa_id","status","shot_number", "lat_lowestmode", "lon_lowestmode", "wwfbiom","wwfecoreg",
-#                          "pft","region", "rh25", "rh50", "rh75","rh90", "rh98", "agbd", "agbd_se")
+      iso_matched_gedi <-  iso_matched_gedi %>%
+            dplyr::select("pa_id","status","wwfbiom","wwfecoreg","pft","region",
+                          "shot_number","filename","lat_lowestmode","lon_lowestmode",
+                          "rh25","rh50","rh75","rh98","agbd","agbd_se")
     if (length(unique(iso_matched_gedi$wwfbiom)) >1){
         pabiome <- iso_matched_gedi$wwfbiom %>% unique() %>% gsub("\\b(\\p{L})\\p{L}{2,}|.","\\U\\1",.,perl = TRUE)%>% str_c( collapse = "+")
     } else if (length(unique(iso_matched_gedi$wwfbiom))==1){
@@ -168,7 +179,7 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
 
     dir.create(file.path(paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",sep="")),recursive=TRUE)
     saveRDS(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_gedi_wk_",gediwk,"_conti_","biome_",pabiome,".RDS", sep=""))
-    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_iso_matched_gedi_sub_wk_",gediwk,".csv", sep=""))
+#    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_iso_matched_gedi_sub_wk_",gediwk,".csv", sep=""))
 
     cat(id_pa,"in",iso3,"result is written to dir\n")
     }
