@@ -69,7 +69,8 @@ adm_prj <- project(vect(adm), "epsg:6933")
 
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 #source(s3_get(paste(f.path,"matching_func.R",sep="")))
-source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
+#source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
+source("/projects/my-public-bucket/GEDI_global_PA_v2/vl_GEDI-PA_2024/matching_func_2024.R")
 
 #flag <- "run all"
 #flag <- "run remaining"

@@ -442,47 +442,54 @@ extract_gedi <- function(matched, mras, iso3){
   iso_matched_gedi_df <- NULL # Initialize before loop
 
   # Iterate over the sequence of indices for your files
-  for (this_csvid in seq_along(all_gedil2_f)) {
-                cat("Reading in no. ", this_csvid, "GPKG of ", length(all_gedil2_f), "GPKGs for iso3", iso3, "\n")
+  for (this_tile in seq_along(all_gedil2_f)) {
+                cat("Reading in no. ", this_tile, "GPKG file of ", length(all_gedil2_f), "GPKG tiles for iso3", iso3, "\n")
                 
                 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
                 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
       
                 # Read GEDI L4A data
-                gedil4_f_path <- paste(f.path, "WDPA_gedi_L4A_tiles/", all_gedil4_f[this_csvid], sep = "")
+                gedil4_f_path <- paste(f.path, "WDPA_gedi_L4A_tiles/", all_gedil4_f[this_tile], sep = "")
                 #gedil4_f <- as.data.frame(st_read(s3_get(gedil4_f_path)))
                 #gedil4_f <- as.data.frame(st_read((gedil4_f_path)))
                 gedil4_f <- vect(s3_get(gedil4_f_path))
                 
                 # Read GEDI L2A data
-                gedil2_f_path <- paste(f.path, "WDPA_gedi_L2A_tiles/", all_gedil2_f[this_csvid], sep = "")
+                gedil2_f_path <- paste(f.path, "WDPA_gedi_L2A_tiles/", all_gedil2_f[this_tile], sep = "")
                 #gedil2_f <- as.data.frame(st_read(s3_get(gedil2_f_path)))
                 #gedil2_f <- as.data.frame(st_read((gedil2_f_path)))
                 gedil2_f <- vect(s3_get(gedil2_f_path))
-                
+
+                gedi_l2_sub <- gedil2_f[,c("pa_id", "status", "shot_number", "lat_lowestmode", "lon_lowestmode", "wwfbiom", "wwfecoreg", "pft", "region", "rh25", "rh50", "rh75", "rh98")]
+
+                rm(gedil2_f)
+      
                 # Check if GEDI L4A data is empty
                 if (nrow(gedil4_f) < 1) {
                     cat("Error: No data for GEDI L4A\n")
-                    gedi_l24 <- gedil2_f
+                    #gedi_l24 <- gedil2_f
+                    gedi_l24 <- gedi_l2_sub
                     gedi_l24$agbd <- NA
                     gedi_l24$agbd_se <- NA
                     gedi_l24$agbd_t <- NA
                     gedi_l24$agbd_t_se <- NA
                 } else {
                     # Select relevant columns from GEDI L4A
-                    #gedi_l4_sub <- gedil4_f %>% dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
-                    gedi_l4_sub <- gedil4_f[, c("shot_number","agbd","agbd_se","agbd_t","agbd_t_se")]
+                    gedi_l4_sub <- gedil4_f[, c("shot_number", "agbd", "agbd_se", "agbd_t", "agbd_t_se")]
                     
+                    rm(gedil4_f)
+
                     # Join with GEDI L2A data
                     #gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by = "shot_number")
-                    gedi_l24 <- merge(gedil2_f, gedi_l4_sub, by = "shot_number")
+                    gedi_l24 <- merge(gedi_l2_sub, gedi_l4_sub, by = "shot_number")
                 }
             
-                print(dim(gedi_l24))
-                print(nrow(gedi_l24))
+                cat("GEDI dataframe for ", this_tile, "GPKG file has", nrow(gedi_l24), "rows and ", ncol(gedi_l24), "columns", "\n")
+                #print(dim(gedi_l24))
+                #print(nrow(gedi_l24))
 
-                rm(gedil4_f)
-                rm(gedil2_f)
+                rm(gedi_l2_sub)
+                rm(gedi_l4_sub)
             
                 # Initialize empty spatial object for the current iteration
                 gedi_l24_sp <- NULL
@@ -496,6 +503,9 @@ extract_gedi <- function(matched, mras, iso3){
                 #    ) %>% spTransform(CRS("+init=epsg:6933"))
                 #gedi_l24_sp <- vect(gedi_l24, geom=c("lon_lowestmode", "lat_lowestmode"), crs="epsg:4326")
                 gedi_l24_sp <- gedi_l24
+
+                rm(gedi_l24)
+                
                 gedi_l24_sp <- project(gedi_l24_sp, "epsg:6933")
                 
                 #matched_gedi <- terra::extract(mras,vect(gedi_l24_sp), df=TRUE)
@@ -506,16 +516,16 @@ extract_gedi <- function(matched, mras, iso3){
                                                     convertFactor(matched0 = matched,exgedi = .) 
 
             iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered, iso_matched_gedi_df)
-            print(dim(iso_matched_gedi_df))
+            cat("GEDI dataframe has", nrow(iso_matched_gedi_df), "rows and ", ncol(iso_matched_gedi_df), "columns", "\n")
 
-            rm(gedi_l24)
             rm(gedi_l24_sp)
             rm(matched_gedi)
             rm(matched_gedi_metrics)
+            rm(matched_gedi_metrics_filtered)
          }
         
         # Store results in a list
-        results_list[[this_csvid]] <- iso_matched_gedi_df
+        results_list[[this_tile]] <- iso_matched_gedi_df
     }
     
     # Combine all results
