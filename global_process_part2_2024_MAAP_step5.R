@@ -164,8 +164,8 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
       cat(tElapsed, "for extracting all PAs in", iso3,"\n")
       iso_matched_gedi <-  iso_matched_gedi %>%
             dplyr::select("pa_id","status","wwfbiom","wwfecoreg","pft","region",
-                          "shot_number","filename","lat_lowestmode","lon_lowestmode",
-                          "rh25","rh50","rh75","rh98","agbd","agbd_se")
+                          "shot_number","lat_lowestmode","lon_lowestmode",
+                          "rh98","agbd","agbd_se") #"filename","rh25","rh50","rh75",
     if (length(unique(iso_matched_gedi$wwfbiom)) >1){
         pabiome <- iso_matched_gedi$wwfbiom %>% unique() %>% gsub("\\b(\\p{L})\\p{L}{2,}|.","\\U\\1",.,perl = TRUE)%>% str_c( collapse = "+")
     } else if (length(unique(iso_matched_gedi$wwfbiom))==1){
@@ -181,7 +181,8 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
     saveRDS(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_gedi_wk_",gediwk,"_conti_","biome_",pabiome,".RDS", sep=""))
 #    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_iso_matched_gedi_sub_wk_",gediwk,".csv", sep=""))
 
-    cat(id_pa,"in",iso3,"result is written to dir\n")
+    cat("PA#",id_pa,"in",iso3,"result is written to dir\n")
+    rm(iso_matched_gedi)
     }
   }
   return(NULL)

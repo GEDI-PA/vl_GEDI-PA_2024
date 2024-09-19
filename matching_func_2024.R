@@ -460,8 +460,9 @@ extract_gedi <- function(matched, mras, iso3){
                 #gedil2_f <- as.data.frame(st_read((gedil2_f_path)))
                 gedil2_f <- vect(s3_get(gedil2_f_path))
 
-                gedi_l2_sub <- gedil2_f[,c("filename", "shot_number", "lat_lowestmode", "lon_lowestmode", "rh25", "rh50", "rh75", "rh98")]
-
+                gedi_l2_sub <- gedil2_f[,c("shot_number", "lat_lowestmode", "lon_lowestmode", "rh98")]
+                # "filename", "rh25", "rh50", "rh75", 
+                
                 rm(gedil2_f)
       
                 # Check if GEDI L4A data is empty
@@ -475,7 +476,8 @@ extract_gedi <- function(matched, mras, iso3){
                     gedi_l24$agbd_t_se <- NA
                 } else {
                     # Select relevant columns from GEDI L4A
-                    gedi_l4_sub <- gedil4_f[, c("shot_number", "agbd", "agbd_se", "agbd_t", "agbd_t_se")]
+                    #gedi_l4_sub <- gedil4_f[, c("shot_number", "agbd", "agbd_se", "agbd_t", "agbd_t_se")]
+                    gedi_l4_sub <- gedil4_f[, c("shot_number", "agbd", "agbd_se")]
                     
                     rm(gedil4_f)
 
