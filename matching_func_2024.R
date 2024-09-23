@@ -408,8 +408,32 @@ extract_gedi <- function(matched, mras, iso3){
 #  all_gedil2_f <- list.files(path=f.path_l2, pattern="L2A", all.files=FALSE, full.names=FALSE)  
 #  all_gedil4_f <- list.files(path=f.path_l4, pattern="L4A", all.files=FALSE, full.names=FALSE)  
 
-  tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
-  iso3_tiles <- tileindex_df$tileindex
+######Vero## select a subset of tiles that overlap with the points from matched_df    
+    s3_get_files(c(paste(f.path,"GRID1deg_poly_52N52S/GRID1deg_poly_52N52S.shp",sep=""),
+              paste(f.path,"GRID1deg_poly_52N52S/GRID1deg_poly_52N52S.shx",sep=""),
+              paste(f.path,"GRID1deg_poly_52N52S/GRID1deg_poly_52N52S.prj",sep=""),
+              paste(f.path,"GRID1deg_poly_52N52S/GRID1deg_poly_52N52S.dbf",sep="")),confirm = FALSE)
+    
+    #G1deg_tiles <- terra::vect(s3_get(paste(f.path,"GRID1deg_poly_52N52S/GRID1deg_poly_52N52S.shp",sep="")))
+    G1deg_tiles <- st_read(s3_get(paste(f.path,"GRID1deg_poly_52N52S/GRID1deg_poly_52N52S.shp",sep="")))
+    G1deg_tiles <- vect(G1deg_tiles)
+    matched_points <- vect(matched, geom=c("lon","lat"), crs="epsg:4326", keepgeom=FALSE)       
+
+    intersecting <- G1deg_tiles[matched_points]
+        if (nrow(intersecting) == 0) {stop('no intersecting G1deg_tiles found')
+            } else {
+            tileindex <- intersecting$id
+            }
+    print(length(tileindex))
+
+    tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
+    iso3_tiles <- intersect(tileindex_df$tileindex, tileindex)
+
+    print(length(iso3_tiles))
+######Vero## select a subset of tiles that overlap with the points from matched_df    
+    
+  #tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
+  #iso3_tiles <- tileindex_df$tileindex
 
   all_gedil2_f <- c()
   all_gedil4_f <- c()
