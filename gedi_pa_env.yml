@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - r-paws
   - r-terra
   - r-dplyr
   - r-sf

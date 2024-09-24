@@ -70,10 +70,10 @@ adm_prj <- project(vect(adm), "epsg:6933")
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 #source(s3_get(paste(f.path,"matching_func.R",sep="")))
 source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
+#source("/projects/my-public-bucket/GEDI_global_PA_v2/vl_GEDI-PA_2024/matching_func_2024.R")
 
 #flag <- "run all"
 #flag <- "run remaining"
-
 
 #---------------STEP5. GEDI PROCESSING ---------------- 
 #using GEDI shots to extract the treatment/control status, also extract the MODIS PFT for AGB prediction
@@ -106,18 +106,30 @@ matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','mag
 print(length(matched_PAs))
 
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
-#f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
-flag <- "run all"
-#flag <- "run remaining"
+#flag <- "run all"
+flag <- "run remaining"
 
 if(flag=="run all"){  #determine how many PAs to run the extraction process
   matched_PAs <- matched_PAs
   cat("Step 5: running extraction on all", length(matched_PAs),"of non-NA matched results in", iso3,"\n")
 } else if (flag=="run remaining"){
-  pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
-  extracted_PAid <- list.files(paste(f.path,"WDPA_extract/",iso3,"_wk",gediwk,"/",sep=""), full.names = F, pattern=paste0(pattern1, collapse="|"))%>%
-    readr::parse_number() %>% unique()
+    #pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
+    #extracted_PAid <- list.files(paste(f.path,"WDPA_extract/",iso3,"_wk",gediwk,"/",sep=""), full.names = F, pattern=paste0(pattern1, collapse="|"))%>% readr::parse_number() %>% unique()
+  
+    s3 <- paws::s3()
+    bucket <- "maap-ops-workspace"
+    prefix <- paste("shared/leitoldv/GEDI_global_PA_v2/WDPA_extract/",iso3,"_wk",gediwk,"/",sep="")
+    
+    extracted_PAs <- s3$list_objects_v2(Bucket = bucket, Prefix = prefix)
+    extracted_fnames <- sapply(extracted_PAs$Contents, function(x) {x$Key})
+    pattern <- paste(".RDS",sep="")
+    extracted_fnames <- grep(pattern, extracted_fnames, value=TRUE)
+    extracted_fnames <- basename(extracted_fnames)
+
+    extracted_PAid <- extracted_fnames %>% readr::parse_number() %>% unique()
+
   matched_PA_id <- matched_PAs %>% readr::parse_number()
   runPA_id <- matched_PA_id[!(matched_PA_id %in% extracted_PAid)]
   if (length(runPA_id)>0){
@@ -131,7 +143,7 @@ if(flag=="run all"){  #determine how many PAs to run the extraction process
   }
 }
 
-print(length(matched_PAs))  ##remaining PAs to be extracted
+print(paste("remaining PAs to be extracted =",length(matched_PAs),sep=" "))  ##remaining PAs to be extracted
 
 registerDoParallel(cores=round(mproc))
 getDoParWorkers()
