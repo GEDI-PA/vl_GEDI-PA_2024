@@ -119,19 +119,25 @@ if(flag=="run all"){  #determine how many PAs to run the extraction process
   extracted_PAid <- list.files(paste(f.path,"WDPA_extract/",iso3,"_wk",gediwk,"/",sep=""), full.names = F, pattern=paste0(pattern1, collapse="|"))%>%
     readr::parse_number() %>% unique()
   matched_PA_id <- matched_PAs %>% readr::parse_number()
-  runPA_id <- matched_PA_id[!(matched_PA_id %in% extracted_PAid)]
+  matched_PAdf <- cbind(matched_PAs, matched_PA_id)
+    for(i in 1:nrow(matched_PAdf)){
+    matched_PAdf[i,"matched_PA_id"] <- readr::parse_number(matched_PAs[i])
+    }
+  #runPA_id <- matched_PA_id[!(matched_PA_id %in% extracted_PAid)]
+  runPA_id <- matched_PAdf[matched_PAdf[,"matched_PA_id"] != extracted_PAid, "matched_PA_id"]
   if (length(runPA_id)>0){
-    Pattern2 <-  paste(runPA_id, collapse="|")
-    runPA <-  matched_PAs[grepl(Pattern2,matched_PAs)]
+    #Pattern2 <-  paste(runPA_id, collapse="|")
+    #runPA <-  matched_PAs[grepl(Pattern2,matched_PAs)]
     # runPA_ind <- str_detect(matched_PAs, paste(runPA_id, collapse = "|"))
-    matched_PAs <- runPA
+    #matched_PAs <- runPA
+    matched_PAs <- matched_PAdf[matched_PAdf[,"matched_PA_id"] != extracted_PAid, "matched_PAs"]
   } else {
     matched_PAs <- NULL
     cat("Step 5 already done for", iso3, "\n")
   }
 }
 
-length(matched_PAs)  ##remaining PAs to be extracted
+print(paste("remaining PAs to be extracted =",length(matched_PAs),sep=" "))  ##remaining PAs to be extracted
 
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
