@@ -199,7 +199,7 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
 
     dir.create(file.path(paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",sep="")),recursive=TRUE)
     saveRDS(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_gedi_wk_",gediwk,"_conti_","biome_",pabiome,".RDS", sep=""))
-#    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_iso_matched_gedi_sub_wk_",gediwk,".csv", sep=""))
+    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_iso_matched_gedi_sub_wk_",gediwk,".csv", sep=""))
 
     cat("PA#",id_pa,"in",iso3,"result is written to dir\n")
     rm(iso_matched_gedi)
