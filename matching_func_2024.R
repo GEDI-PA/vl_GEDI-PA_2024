@@ -424,12 +424,12 @@ extract_gedi <- function(matched, mras, iso3){
             } else {
             tileindex <- intersecting$id
             }
-    print(length(tileindex))
+    #print(length(tileindex))
 
     tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
     iso3_tiles <- intersect(tileindex_df$tileindex, tileindex)
 
-    print(length(iso3_tiles))
+    print(paste("number of overlapping GEDI tiles =",length(iso3_tiles),sep=" "))
 ######Vero## select a subset of tiles that overlap with the points from matched_df    
     
   #tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
@@ -463,11 +463,11 @@ extract_gedi <- function(matched, mras, iso3){
   
   # Initialize an empty list to store results
   results_list <- list()
-  iso_matched_gedi_df <- NULL # Initialize before loop
+#  iso_matched_gedi_df <- NULL # Initialize before loop
 
   # Iterate over the sequence of indices for your files
   for (this_tile in seq_along(all_gedil2_f)) {
-                cat("Reading in no. ", this_tile, "GPKG file of ", length(all_gedil2_f), "GPKG tiles for iso3", iso3, "\n")
+                cat("Reading in no. ", this_tile, "GPKG file of ", length(all_gedil2_f), "GEDI tiles for iso3", iso3, "\n")
                 
                 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
                 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
@@ -510,7 +510,7 @@ extract_gedi <- function(matched, mras, iso3){
                     gedi_l24 <- merge(gedi_l2_sub, gedi_l4_sub, by = "shot_number")
                 }
             
-                cat("GEDI dataframe for ", this_tile, "GPKG file has", nrow(gedi_l24), "rows and ", ncol(gedi_l24), "columns", "\n")
+                cat("GEDI tile # ", this_tile, "GPKG file has", nrow(gedi_l24), "rows and ", ncol(gedi_l24), "columns", "\n")
                 #print(names(gedi_l24))
                 #print(dim(gedi_l24))
                 #print(nrow(gedi_l24))
@@ -531,6 +531,10 @@ extract_gedi <- function(matched, mras, iso3){
                 #gedi_l24_sp <- vect(gedi_l24, geom=c("lon_lowestmode", "lat_lowestmode"), crs="epsg:4326")
                 gedi_l24_sp <- gedi_l24
 
+#    plot(intersecting)
+#    plot(matched_points, add=T, pch=".", col="red")
+#    plot(gedi_l24_sp, add=T, pch=".", cex=0.1)
+
                 rm(gedi_l24)
                 
                 gedi_l24_sp <- project(gedi_l24_sp, "epsg:6933")
@@ -539,29 +543,35 @@ extract_gedi <- function(matched, mras, iso3){
                 #matched_gedi_metrics <- cbind(matched_gedi, gedi_l24_sp@data)
                 matched_gedi <- terra::extract(mras, gedi_l24_sp, df=TRUE)
                 matched_gedi_metrics <- cbind(matched_gedi, gedi_l24_sp)
+                print(nrow(matched_gedi_metrics))
                 matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>%
-                                                    convertFactor(matched0 = matched,exgedi = .) 
+                                                    convertFactor(matched0 = matched,exgedi = .)
+                print(nrow(matched_gedi_metrics_filtered))
 
-            iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered, iso_matched_gedi_df)
-            cat("GEDI dataframe has", nrow(iso_matched_gedi_df), "rows and ", ncol(iso_matched_gedi_df), "columns", "\n")
+            #iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered, iso_matched_gedi_df)
+            cat("dataframe #", this_tile, "has", nrow(matched_gedi_metrics_filtered), "rows and ", ncol(matched_gedi_metrics_filtered), "columns", "\n")
 
             rm(gedi_l24_sp)
             rm(matched_gedi)
             rm(matched_gedi_metrics)
-            rm(matched_gedi_metrics_filtered)
+            #rm(matched_gedi_metrics_filtered)
          }
         
         # Store results in a list
-        results_list[[this_tile]] <- iso_matched_gedi_df
+        #results_list[[this_tile]] <- iso_matched_gedi_df
+        results_list[[this_tile]] <- matched_gedi_metrics_filtered
+        print(nrow(results_list[[this_tile]]))
     }
     
     # Combine all results
-    if (!is.null(iso_matched_gedi_df)) {
+    if (!is.null(results_list)) {
+#    if (!is.null(iso_matched_gedi_df)) {
         #iso_matched_gedi_df <- do.call(rbind, results_list)
-        iso_matched_gedi_df <- as.data.frame(dplyr::bind_rows(results_list))
+        iso_matched_gedi_df <- dplyr::bind_rows(results_list)
+        cat("output dataframe has", nrow(iso_matched_gedi_df), "rows and ", ncol(iso_matched_gedi_df), "columns", "\n")
     }
     
-    cat("Done GEDI processing\n")
+    cat("Done GEDI processing for PA ", id_pa, "\n")
     return(iso_matched_gedi_df)
 }
 
