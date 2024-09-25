@@ -27,6 +27,9 @@ source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
 gediwk <- 24
 mproc <- 1
 
+flag <- "run all"
+#flag <- "run remaining"
+
 #-------------------------------------------------------------------------------
 args = commandArgs(trailingOnly=TRUE)
 if (length(args)==0) {
@@ -111,7 +114,7 @@ print(length(matched_PAs))
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
 #flag <- "run all"
-flag <- "run remaining"
+#flag <- "run remaining"
 
 if(flag=="run all"){  #determine how many PAs to run the extraction process
   matched_PAs <- matched_PAs
@@ -199,7 +202,7 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
 
     dir.create(file.path(paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",sep="")),recursive=TRUE)
     saveRDS(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_gedi_wk_",gediwk,"_conti_","biome_",pabiome,".RDS", sep=""))
-    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_iso_matched_gedi_sub_wk_",gediwk,".csv", sep=""))
+#    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_iso_matched_gedi_sub_wk_",gediwk,".csv", sep=""))
 
     cat("PA#",id_pa,"in",iso3,"result is written to dir\n")
     rm(iso_matched_gedi)
