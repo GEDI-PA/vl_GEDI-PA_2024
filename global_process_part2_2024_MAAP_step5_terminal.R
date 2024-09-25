@@ -20,6 +20,8 @@ library("doParallel")
 #install.packages("RItools")    
 #library("RItools")
 
+source("/projects/my-public-bucket/GEDI_global_PA_v2/vl_GEDI-PA_2024/matching_func_2024.R")
+
 #To test, we define the variables manually. For final version, run the commented out section below
 #iso3 <-"ECU"
 gediwk <- 24
@@ -70,7 +72,7 @@ adm_prj <- project(vect(adm), "epsg:6933")
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 #source(s3_get(paste(f.path,"matching_func.R",sep="")))
 #source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
-source("/projects/my-public-bucket/GEDI_global_PA_v2/vl_GEDI-PA_2024/matching_func_2024.R")
+#source("/projects/my-public-bucket/GEDI_global_PA_v2/vl_GEDI-PA_2024/matching_func_2024.R")
 
 #flag <- "run all"
 #flag <- "run remaining"

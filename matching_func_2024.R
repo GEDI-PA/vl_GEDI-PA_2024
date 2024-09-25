@@ -1,4 +1,4 @@
-options(warn=-1)
+xoptions(warn=-1)
 options(dplyr.summarise.inform = FALSE)
 
 # ppath <- "/gpfs/data1/duncansongp/amberliang/PADDDtracker_DataReleaseV2_May2019/"
@@ -557,7 +557,8 @@ extract_gedi <- function(matched, mras, iso3){
     
     # Combine all results
     if (!is.null(iso_matched_gedi_df)) {
-        iso_matched_gedi_df <- do.call(rbind, results_list)
+        #iso_matched_gedi_df <- do.call(rbind, results_list)
+        iso_matched_gedi_df <- as.data.frame(dplyr::bind_rows(results_list))
     }
     
     cat("Done GEDI processing\n")
