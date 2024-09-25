@@ -615,7 +615,7 @@ extract_gedi2b <- function(matched, mras){
 
 results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                             Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2B_tiles/",sep=""))
-    all_gedil2b_f <- sapply(results$Contents, function(x) {x$Key})
+    all_gedil2b_f <- sapply(results2b$Contents, function(x) {x$Key})
     pattern=paste(".gpkg",sep="")
     all_gedil2b_f <- grep(pattern, all_gedil2b_f, value=TRUE)
     all_gedil2b_f <- basename(all_gedil2b_f)#[4:6] #Currently specifying working files
