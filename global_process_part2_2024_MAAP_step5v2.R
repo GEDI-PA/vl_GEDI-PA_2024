@@ -36,7 +36,7 @@ if (length(args)==0) {
 } else if (length(args)>=1) {
   
   iso3 <- args[1]  #country to process
-#  flag <- args[2]  #"run all" PAs or "run remaining" only
+  flag <- args[2]  #"run all" PAs or "run remaining" only
   #gediwk <- args[2]   #the # of weeks GEDI data to use
   #mproc <- as.integer(args[3])  #the number of cores to use for matching
 }
@@ -74,7 +74,7 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 #source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
 #source("/projects/my-public-bucket/GEDI_global_PA_v2/vl_GEDI-PA_2024/matching_func_2024.R")
 
-flag <- "run all"
+#flag <- "run all"
 #flag <- "run remaining"
 
 #---------------STEP5. GEDI PROCESSING ---------------- 
