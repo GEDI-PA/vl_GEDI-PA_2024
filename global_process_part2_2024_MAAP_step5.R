@@ -20,15 +20,14 @@ library("doParallel")
 #install.packages("RItools")    
 #library("RItools")
 
+#f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 source(s3_get(paste(f.path,"vl_GEDI-PA_2024/matching_func_2024.R",sep="")))
 
 #To test, we define the variables manually. For final version, run the commented out section below
 #iso3 <-"ECU"
 gediwk <- 24
 mproc <- 1
-
-flag <- "run all"
-#flag <- "run remaining"
 
 #-------------------------------------------------------------------------------
 args = commandArgs(trailingOnly=TRUE)
@@ -37,15 +36,13 @@ if (length(args)==0) {
 } else if (length(args)>=1) {
   
   iso3 <- args[1]  #country to process
+  flag <- args[2]  #"run all" PAs or "run remaining" only
   #gediwk <- args[2]   #the # of weeks GEDI data to use
   #mproc <- as.integer(args[3])  #the number of cores to use for matching
 }
 #-------------------------------------------------------------------------------
 
 cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
-
-#f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
-f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
