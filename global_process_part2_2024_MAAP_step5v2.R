@@ -161,7 +161,8 @@ foreach(this_rds=matched_PAs, .combine = foreach_rbind, .packages=c('sp','magrit
   cat("Extracting for no. ", match(this_rds,matched_PAs),"pa out of", length(matched_PAs),"\n")
   id_pa <- basename(this_rds) %>% readr::parse_number() %>% unique()
   matched <- readRDS(s3_get(paste(f.path,"WDPA_matching_results/",iso3,"_wk",gediwk,"/",iso3,"_pa_",id_pa,"_matching_results_wk",gediwk,".RDS",sep="")))
-  matched$pa_id <- rep(id_pa, nrow(matched))
+#  matched$pa_id <- rep(id_pa, nrow(matched))
+  print(paste("PA id",unique(matched$pa_id),sep=" "))
 
   if (is.null(matched)==TRUE  | nrow(matched)==0) {
     cat("Matched result is null for PA", id_pa, "quitting...\n")

@@ -560,7 +560,7 @@ extract_gedi <- function(matched, mras, iso3){
         # Store results in a list
         #results_list[[this_tile]] <- iso_matched_gedi_df
         results_list[[this_tile]] <- matched_gedi_metrics_filtered
-        print(nrow(results_list[[this_tile]]))
+        #print(nrow(results_list[[this_tile]]))
     }
     
     # Combine all results
