@@ -248,8 +248,8 @@ matched2ras <- function(matched_df){
   
   # Ensure fields are in appropriate formats
   matched_pts$UID <- as.integer(matched_pts$UID)
-  #matched_pts$pa_id <- as.integer(matched_pts$pa_id)
-  matched_pts$pa_id <- as.integer(rep(id_pa,nrow(matched_pts)))
+  matched_pts$pa_id <- as.integer(matched_pts$pa_id)
+  #matched_pts$pa_id <- as.integer(rep(id_pa,nrow(matched_pts)))
   matched_pts$status <- as.logical(matched_pts$status)
   matched_pts$wwfbiom <- as.numeric(matched_pts$wwfbiom)
   matched_pts$wwfecoreg <- as.numeric(matched_pts$wwfecoreg)
