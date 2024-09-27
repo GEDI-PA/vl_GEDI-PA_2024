@@ -604,21 +604,21 @@ extract_gedi2b <- function(matched, mras){
     all_gedil2_f <- sapply(results$Contents, function(x) {x$Key})
     pattern=paste(".gpkg",sep="")
     all_gedil2_f <- grep(pattern, all_gedil2_f, value=TRUE)
-    all_gedil2_f <- basename(all_gedil2_f)#[4:6] #Currently specifying working files
+    all_gedil2_f <- basename(all_gedil2_f)[8]#[4:6] #Currently specifying working files
     
     results4 <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                                 Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep=""))
     all_gedil4_f <- sapply(results4$Contents, function(x) {x$Key})
     pattern4=paste(".gpkg",sep="")
     all_gedil4_f <- grep(pattern4, all_gedil4_f, value=TRUE)
-    all_gedil4_f <- basename(all_gedil4_f)#[4:6] #Currently specifying working files
+    all_gedil4_f <- basename(all_gedil4_f)[8]#[4:6] #Currently specifying working files
 
 results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                             Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2B_tiles/",sep=""))
     all_gedil2b_f <- sapply(results2b$Contents, function(x) {x$Key})
     pattern=paste(".gpkg",sep="")
     all_gedil2b_f <- grep(pattern, all_gedil2b_f, value=TRUE)
-    all_gedil2b_f <- basename(all_gedil2b_f)#[4:6] #Currently specifying working files
+    all_gedil2b_f <- basename(all_gedil2b_f[8])#[4:6] #Currently specifying working files
 
   
     # Initialize an empty list to store results
@@ -640,6 +640,9 @@ results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace",
                 # Read GEDI L2B data
                 gedil2b_f_path <- paste(gedipath, "WDPA_gedi_L2B_tiles/", all_gedil2b_f[this_csvid], sep = "")
                 gedil2b_f <- as.data.frame(st_read(gedil2b_f_path))
+                names(gedil2b_f)[names(gedil2b_f) == "geolocation.lon_lowestmode"] <- "lon_lowestmode"
+                names(gedil2b_f)[names(gedil2b_f) == "geolocation.lat_lowestmode"] <- "lat_lowestmode"
+                names(gedil2b_f)[names(gedil2b_f) == "land_cover_data.landsat_treecover"] <- "landsat_treecover"
             
                 # Check if GEDI L4A data is empty
                 if (nrow(gedil4_f) < 1) {
@@ -671,12 +674,12 @@ results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace",
                 } else {
                     # Select relevant columns from GEDI L4A
                     gedi_l2b_sub <- gedil2b_f %>%
-                        dplyr::select(shot_number, land_cover_data/landsat_treecover, pai, fhd_normal)
+                        dplyr::select(shot_number, landsat_treecover, pai, fhd_normal)
                     
                     # Join with GEDI L2A data
                     gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")
                 }
-                rint(dim(gedi_l24b))
+                print(dim(gedi_l24b))
             
                 # Initialize empty spatial object for the current iteration
                 gedi_l24b_sp <- NULL
@@ -708,7 +711,7 @@ results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace",
     
     cat("Done GEDI processing\n")
     return(iso_matched_gedi_df)
-}                                              
+}                                             
 
 ############################################################################################   
                                       
@@ -779,4 +782,4 @@ rasExtract2020 <- function(l4_sp){
 #   return(iso_matched_gedi_df)
 # }
 # stopImplicitCluster()
-# 
+#   
