@@ -140,6 +140,8 @@ if(flag=="run all"){  #determine how many PAs to run the extraction process
 
 print(paste("remaining PAs to be extracted =",length(matched_PAs),sep=" "))  ##remaining PAs to be extracted
 
+matched_PAs <- rev(matched_PAs)
+
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 
 registerDoParallel(cores=round(mproc))
