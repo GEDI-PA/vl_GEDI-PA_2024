@@ -11,9 +11,9 @@ if (length(args)==0) {
 } else if (length(args)>=1) {
   
   iso3 <- args[1]  #country to process
-  out <- args[2]
+#  flag <- args[2]  #"run all" PAs or "run remaining" only
   #gediwk <- args[2]   #the # of weeks GEDI data to use
-  # mproc <- as.integer(args[2])  #the number of cores to use for matching
+  #mproc <- as.integer(args[3])  #the number of cores to use for matching
 }
 #-------------------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ gediwk<-24
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
-f.path3<- file.path(out) #Rename folder to "output" since DPS looks for this, move up in the as default but allow an argument to change output file
+# f.path3<- file.path(out) #Rename folder to "output" since DPS looks for this, move up in the as default but allow an argument to change output file
 
 
 source("matching_func_2024.r")
@@ -226,12 +226,12 @@ for (this_rds in matched_PAs) {
     cat('Output df dimensions:', dim(iso_matched_gedi), "\n")
     
     # Create output directory if it does not exist
-    dir.create(file.path(f.path3, "WDPA_GEDI_extract"), recursive = TRUE, showWarnings = FALSE)
+    dir.create(file.path(paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",sep="")),recursive=TRUE)
     
     # Save results to RDS and CSV files
-    saveRDS(iso_matched_gedi, file = paste(f.path3, "WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
+    saveRDS(iso_matched_gedi, file=paste("output/WDPA_extract/", iso3, "_pa_", id_pa, 
                                            "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
-    write.csv(iso_matched_gedi, file = paste(f.path3, "WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
+    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/", iso3, "_pa_", id_pa, 
                                               "_iso_matched_gedi_sub_wk_", gediwk, ".csv", sep = ""))
     
     cat(id_pa, "in", iso3, "results are written to directory\n")
