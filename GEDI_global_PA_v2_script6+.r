@@ -72,41 +72,47 @@ length(gedi_paid_DUP)
 gedi_paid_UNQ <- setdiff(gedi_paid_ALL, gedi_paid_DUP)
 length(gedi_paid_UNQ)
 
+input <- "DUP"
+#input <- "UNQ"
 #------------
-#for(i in 1:length(gedi_paid_DUP)){
+if(input == "DUP"){
+    
+for(i in 1:length(gedi_paid_DUP)){
 #
-#DUP_id <- gedi_paid_DUP[i]
+DUP_id <- gedi_paid_DUP[i]
 #print(DUP_id)
-#DUP_paf <- gedi_paf_ALL[which(gedi_paid_ALL == DUP_id)]
+DUP_paf <- gedi_paf_ALL[which(gedi_paid_ALL == DUP_id)]
 #print(length(DUP_paf))
 #
-#    if(length(DUP_paf) == 2){
+    if(length(DUP_paf) == 2){
 #   
-#        pa_metrics1 <- readRDS(DUP_paf[1]) %>% unique()
-#        pa_metrics2 <- readRDS(DUP_paf[2]) %>% unique()    
-#        pa_metrics_ALL <- rbind(pa_metrics1, pa_metrics2)    
-#        wwfbiom <- strsplit(strsplit(DUP_paf[1], split=c("_conti_biome_"))[[1]][2], split=".RDS")[[1]]
-#    write.csv(pa_metrics_ALL,
-#          #file=paste(f.path,"/WDPA_extract/pa_stats_ALL/BRA_pa_",DUP_id,"_gedi_wk24_",wwfbiom,".csv",sep=""))
-#    }
+        pa_metrics1 <- readRDS(DUP_paf[1]) %>% unique()
+        pa_metrics2 <- readRDS(DUP_paf[2]) %>% unique()    
+        pa_metrics_ALL <- rbind(pa_metrics1, pa_metrics2)    
+        wwfbiom <- strsplit(strsplit(DUP_paf[1], split=c("_conti_biome_"))[[1]][2], split=".RDS")[[1]]
+    write.csv(pa_metrics_ALL,
+        file=paste(f.path,"/WDPA_extract/pa_stats_ALL/BRA_pa_",DUP_id,"_gedi_wk24_",wwfbiom,".csv",sep=""))
+    }
 #
-#    else if(length(DUP_paf) == 3){
-#        pa_metrics1 <- readRDS(DUP_paf[1]) %>% unique()
-#        pa_metrics2 <- readRDS(DUP_paf[2]) %>% unique()
-#        pa_metrics3 <- readRDS(DUP_paf[3]) %>% unique()
-#        pa_metrics_ALL <- rbind(pa_metrics1, pa_metrics2, pa_metrics3)
-#        wwfbiom <- strsplit(strsplit(DUP_paf[1], split=c("_conti_biome_"))[[1]][2], split=".RDS")[[1]]
-#    write.csv(pa_metrics_ALL,
-#     file=paste(f.path,"/WDPA_extract/pa_stats_ALL/BRA_pa_",DUP_id,"_gedi_wk24_",wwfbiom,".csv",sep=""))
-#    }
+    else if(length(DUP_paf) == 3){
+        pa_metrics1 <- readRDS(DUP_paf[1]) %>% unique()
+        pa_metrics2 <- readRDS(DUP_paf[2]) %>% unique()
+        pa_metrics3 <- readRDS(DUP_paf[3]) %>% unique()
+        pa_metrics_ALL <- rbind(pa_metrics1, pa_metrics2, pa_metrics3)
+        wwfbiom <- strsplit(strsplit(DUP_paf[1], split=c("_conti_biome_"))[[1]][2], split=".RDS")[[1]]
+    write.csv(pa_metrics_ALL,
+     file=paste(f.path,"/WDPA_extract/pa_stats_ALL/BRA_pa_",DUP_id,"_gedi_wk24_",wwfbiom,".csv",sep=""))
+    }
 #
-#    else if(length(DUP_paf) > 3){
-#        print(paste("there are more than 3 files with pa_id = ", DUP_id, sep=""))
-#    }
-#}
-
+    else if(length(DUP_paf) > 3){
+        print(paste("there are more than 3 files with pa_id = ", DUP_id, sep=""))
+    }
+  }
+}
 
 #------------
+if(input == "UNQ"){
+
 for(i in 1:length(gedi_paid_UNQ)){
 
     UNQ_id <- gedi_paid_UNQ[i]
@@ -124,6 +130,7 @@ for(i in 1:length(gedi_paid_UNQ)){
     write.csv(pa_metrics,
         file=paste(f.path,"/WDPA_extract/pa_stats_ALL/BRA_pa_",UNQ_id,"_gedi_wk24_",wwfbiom,".csv",sep=""))
     }
+  }
 }
 
 print(length(list.files(paste(f.path,"/WDPA_extract/pa_stats_ALL/",sep=""))))
