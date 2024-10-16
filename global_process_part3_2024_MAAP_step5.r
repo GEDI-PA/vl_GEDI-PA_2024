@@ -167,7 +167,12 @@ Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_extract/",sep=""))
 #Oct 15 Updated to split loop into multiple extract_gedi functions
 
 
-
+iso_test<-tryCatch({
+    extract_gedi2b(iso3 = iso3)
+    }, error = function(e) {
+        cat("Error extracting GEDI data for tile", tile_id, ":", e$message, "\n")
+        return(NULL)
+    })
 
 for (this_rds in matched_PAs) {
     
@@ -208,7 +213,7 @@ for (this_rds in matched_PAs) {
     # Start timing for extraction
     startTime <- Sys.time()
 
-    iso_test<-extract_gedi2b(iso3 = iso3)
+    # iso_test<-extract_gedi2b(iso3 = iso3)
     # Extract GEDI data with error handling
     iso_matched_gedi <- tryCatch({
         extract_gediPart2(matched = matched, mras = mras)
