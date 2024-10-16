@@ -1,5 +1,5 @@
 #When running Rscript, install these packages first
-#conda install -c conda-forge r-paws r-terra r-optmatch r-sp r-sf r-rgeos r-dplyr r-plyr r-ggplot2 r-mapview r-stringr r-maptools r-gridExtra r-lattice r-MASS r-foreach r-doParallel r-rlang r-tidyr r-magrittr r-aws.s3 r-rgeos r-rlemon r-svd r-sparsem r-survival
+#conda install -c conda-forge r-paws r-terra r-optmatch r-sp r-sf r-rgeos r-dplyr r-plyr r-ggplot2 r-mapview r-stringr r-maptools r-gridExtra r-lattice r-MASS r-foreach r-doParallel r-rlang r-tidyr r-magrittr r-aws.s3 r-rgeos r-rlemon r-svd r-sparsem r-survival r-RItools
 
 gediwk <- 24
 mproc <- 2
@@ -47,6 +47,8 @@ gediwk<-24
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+f.path3<- "~/output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
+
 # f.path3<- file.path(out) #Rename folder to "output" since DPS looks for this, move up in the as default but allow an argument to change output file
 
 
@@ -79,6 +81,28 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 
 flag <- "run all"
 
+#---------Pull appropriate GEDI Tiles-------#
+# TO DO: SEPARATE TILES BY COUNTRY
+results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2A_tiles/",sep=""))
+all_gedil2_f <- sapply(results$Contents, function(x) {x$Key})
+pattern=paste(".gpkg",sep="")
+all_gedil2_f <- grep(pattern, all_gedil2_f, value=TRUE)
+all_gedil2_f <- basename(all_gedil2_f)
+
+results4 <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep=""))
+all_gedil4_f <- sapply(results4$Contents, function(x) {x$Key})
+pattern4=paste(".gpkg",sep="")
+all_gedil4_f <- grep(pattern4, all_gedil4_f, value=TRUE)
+all_gedil4_f <- basename(all_gedil4_f)
+results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                        Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2B_tiles/",sep=""))
+all_gedil2b_f <- sapply(results2b$Contents, function(x) {x$Key})
+pattern=paste(".gpkg",sep="")
+all_gedil2b_f <- grep(pattern, all_gedil2b_f, value=TRUE)
+all_gedil2b_f <- basename(all_gedil2b_f)
+
 #---------------STEP5. GEDI PROCESSING - using GEDI shots to extract the treatment/control status, also extract the MODIS PFT for AGB prediction---------------- 
 # if (file.exists(paste(f.path,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_gedi_extracted_matching_wk",gediwk,".RDS", sep=""))){
 cat(paste("Step 5: Performing WK ",gediwk,"GEDI extraction for", iso3,"\n"))
@@ -87,7 +111,7 @@ cat(paste("Step 5: Performing WK ",gediwk,"GEDI extraction for", iso3,"\n"))
 # matched_all
 
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/GNB_wk24/",sep=""))
+Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/",iso3,"_wk24/",sep=""))
   matched_all <- sapply(results$Contents, function(x) {x$Key})
   pattern=paste(".RDS")
   matched_all <-grep(pattern, matched_all, value=TRUE)
@@ -140,7 +164,10 @@ Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_extract/",sep=""))
 }
 
 ## Changed error catching and loop now works ##
-#Sep 9 2024, code works but needs to be updated for running as DPS
+#Oct 15 Updated to split loop into multiple extract_gedi functions
+
+
+
 
 for (this_rds in matched_PAs) {
     
@@ -148,11 +175,11 @@ for (this_rds in matched_PAs) {
     id_pa <- basename(this_rds) %>% readr::parse_number() %>% unique()
     
     # Construct the path to read the RDS file
-    rds_path <- paste(f.path2, iso3, "_wk", gediwk,"Work", "/", iso3, "_pa_", id_pa, "_matching_results_wk24.RDS", sep = "")
+    rds_path <- paste(f.path3, iso3, "_wk", gediwk, "/", iso3, "_pa_", id_pa, "_matching_results_wk24.RDS", sep = "")
     
     # Read the RDS file with error handling
     matched <- tryCatch({
-        readRDS(s3_get(rds_path))
+        readRDS(rds_path)
     }, error = function(e) {
         cat("Error reading RDS file for PA", id_pa, ":", e$message, "\n")
         return(NULL)
@@ -180,10 +207,11 @@ for (this_rds in matched_PAs) {
     
     # Start timing for extraction
     startTime <- Sys.time()
-    
+
+    iso_test<-extract_gedi2b(iso3 = iso3)
     # Extract GEDI data with error handling
     iso_matched_gedi <- tryCatch({
-        extract_gedi2b(matched = matched, mras = mras)
+        extract_gediPart2(matched = matched, mras = mras)
     }, error = function(e) {
         cat("Error extracting GEDI data for PA", id_pa, ":", e$message, "\n")
         return(NULL)
@@ -202,8 +230,9 @@ for (this_rds in matched_PAs) {
     
     # Process and select columns
     iso_matched_gedi <- iso_matched_gedi %>%
-        dplyr::select("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", "lon_lowestmode",
-                      "lat_lowestmode", "rh25", "rh50", "rh75", "rh90", "rh98","UID")
+        dplyr::select("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", 
+                      # "lon_lowestmode", "lat_lowestmode",
+                      "rh25", "rh50", "rh75", "rh90", "rh98","UID","fhd_normal","pai","landsat_treecover")
     
     # Determine biome name
     if (length(unique(iso_matched_gedi$wwfbiom)) > 1) {
@@ -226,12 +255,12 @@ for (this_rds in matched_PAs) {
     cat('Output df dimensions:', dim(iso_matched_gedi), "\n")
     
     # Create output directory if it does not exist
-    dir.create(file.path(paste("output/WDPA_extract/",iso3,"_wk",gediwk,"/",sep="")),recursive=TRUE)
+    dir.create(file.path(f.path3, "WDPA_GEDI_extract"), recursive = TRUE, showWarnings = FALSE)
     
     # Save results to RDS and CSV files
-    saveRDS(iso_matched_gedi, file=paste("output/WDPA_extract/", iso3, "_pa_", id_pa, 
+    saveRDS(iso_matched_gedi, file = paste(f.path3, "WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
                                            "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
-    write.csv(iso_matched_gedi, file=paste("output/WDPA_extract/", iso3, "_pa_", id_pa, 
+    write.csv(iso_matched_gedi, file = paste(f.path3, "WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
                                               "_iso_matched_gedi_sub_wk_", gediwk, ".csv", sep = ""))
     
     cat(id_pa, "in", iso3, "results are written to directory\n")
