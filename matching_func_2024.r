@@ -598,120 +598,124 @@ extract_gedi <- function(matched, mras){
  # NON PARALLEL VERSION ADDING IN L2B
  # **************************************
                                       
-extract_gedi2b <- function(matched, mras){
-    results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2A_tiles/",sep=""))
-    all_gedil2_f <- sapply(results$Contents, function(x) {x$Key})
-    pattern=paste(".gpkg",sep="")
-    all_gedil2_f <- grep(pattern, all_gedil2_f, value=TRUE)
-    all_gedil2_f <- basename(all_gedil2_f)[8]#[4:6] #Currently specifying working files
-    
-    results4 <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                                Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep=""))
-    all_gedil4_f <- sapply(results4$Contents, function(x) {x$Key})
-    pattern4=paste(".gpkg",sep="")
-    all_gedil4_f <- grep(pattern4, all_gedil4_f, value=TRUE)
-    all_gedil4_f <- basename(all_gedil4_f)[8]#[4:6] #Currently specifying working files
-
-results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2B_tiles/",sep=""))
-    all_gedil2b_f <- sapply(results2b$Contents, function(x) {x$Key})
-    pattern=paste(".gpkg",sep="")
-    all_gedil2b_f <- grep(pattern, all_gedil2b_f, value=TRUE)
-    all_gedil2b_f <- basename(all_gedil2b_f[8])#[4:6] #Currently specifying working files
-
-  
+extract_gedi2b <- function(iso3){
     # Initialize an empty list to store results
+  results_list <- list()
+  ### TODO: Are you sure you need the next line?
+  iso_matched_gedi_df <- NULL # Initialize before loop
+  # # Iterate over the sequence of indices for your files
+  for (this_csvid in seq_along(all_gedil2_f)) {
+    tile_id <- basename(all_gedil2_f[this_csvid]) %>% readr::parse_number()
+    if(file.exists(paste(f.path3, iso3,"_extractStep1/", iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))){
+       print("File already exists",sep="")
+       } else {
+    cat("Reading in no. ", this_csvid, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
+    
+    ### Make this it's own function
+    # Read GEDI L4A data
+    gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/", all_gedil4_f[this_csvid], sep = "")
+    gedil4_f <- st_read(gedil4_f_path, int64_as_string = TRUE)
+    
+    # Read GEDI L2A data
+    gedil2_f_path <- paste(gedipath, "WDPA_gedi_L2A_tiles/", all_gedil2_f[this_csvid], sep = "")
+    gedil2_f <- st_read(gedil2_f_path, int64_as_string = TRUE)
+    
+    # Check if GEDI L4A data is empty
+    if (nrow(gedil4_f) < 1) {
+      cat("Error: No data for GEDI L4A\n")
+      gedi_l24 <- gedil2_f
+      gedi_l24$agbd <- NA
+      gedi_l24$agbd_se <- NA
+      gedi_l24$agbd_t <- NA
+      gedi_l24$agbd_t_se <- NA
+    } else {
+      # Select relevant columns from GEDI L4A
+      ### Drop the geometry, it's redundant
+      gedi_l4_sub <- gedil4_f %>% st_drop_geometry() %>%
+        dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
+      ### Return here, do the join in the outer function
+      # Join with GEDI L2A data
+      gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by = "shot_number")
+    }
+    # print(list(gedi_l24$shot_number))
+    
+    ###TODO: Make this it's own function
+    # Read GEDI L2B data
+    gedil2b_f_path <- paste(gedipath, "WDPA_gedi_L2B_tiles/", all_gedil2b_f[this_csvid], sep = "")
+    gedil2b_f <- st_read(gedil2b_f_path, int64_as_string = TRUE)
+    names(gedil2b_f)[names(gedil2b_f) == "geolocation.lon_lowestmode"] <- "lon_lowestmode"
+    names(gedil2b_f)[names(gedil2b_f) == "geolocation.lat_lowestmode"] <- "lat_lowestmode"
+    names(gedil2b_f)[names(gedil2b_f) == "land_cover_data.landsat_treecover"] <- "landsat_treecover"
+    
+    # Check if GEDI L2B data is empty
+    if (nrow(gedil2b_f) < 1) {
+      cat("Error: No data for GEDI L4A\n")
+      gedi_l24b <- gedi_l24
+      gedi_l24b <- gedi_l24
+      gedi_l24b$landsat_treecover<- NA
+      gedi_l24b$pai <- NA
+      gedi_l24b$fhd_normal <- NA
+    } else {
+      # Select relevant columns from GEDI L4A
+      ### Drop the geometry, it's redundant
+      gedi_l2b_sub <- gedil2b_f %>% st_drop_geometry() %>%
+        dplyr::select(shot_number, landsat_treecover, pai, fhd_normal)
+      ### Return here, do the join in the outer function
+      # Join with GEDI L2A data
+      gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")%>% st_drop_geometry()
+    }
+    print(dim(gedi_l2b_sub))
+    print(head(gedi_l24b))
+    # print(colnames(gedi_l24b))
+    # names(gedi_l24b)[names(gedi_l24b) == "shot_number"] <- "shotnum"
+    # names(gedi_l24b)[names(gedi_l24b) == "lon_lowestmode"] <- "lonlow"
+    # names(gedi_l24b)[names(gedi_l24b) == "lat_lowestmode"] <- "latlow"
+    # names(gedi_l24b)[names(gedi_l24b) == "landsat_treecover"] <- "landtree"
+    # names(gedi_l24b)[names(gedi_l24b) == "geolocation.sensitivity_a2"] <- "geosens"
+    st_write(gedi_l24b, dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
+                                           "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
+    cat(tile_id, "in", iso3, "results are written to directory\n")
+            
+    }}
+}     
+
+extract_gediPart2 <- function(matched,mras){
+    extracted<-list.files(paste(f.path3,iso3,"_extractStep1/",sep=""), pattern=".gpkg", full.names = TRUE)
+    iso_matched_gedi_df <- NULL
     results_list <- list()
-    iso_matched_gedi_df <- NULL # Initialize before loop
-
-            # Iterate over the sequence of indices for your files
-    for (this_csvid in seq_along(all_gedil2_f)) {
-                cat("Reading in no. ", this_csvid, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
-                
-                # Read GEDI L4A data
-                gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/", all_gedil4_f[this_csvid], sep = "")
-                gedil4_f <- as.data.frame(st_read(gedil4_f_path))
-                
-                # Read GEDI L2A data
-                gedil2_f_path <- paste(gedipath, "WDPA_gedi_L2A_tiles/", all_gedil2_f[this_csvid], sep = "")
-                gedil2_f <- as.data.frame(st_read(gedil2_f_path))
-
-                # Read GEDI L2B data
-                gedil2b_f_path <- paste(gedipath, "WDPA_gedi_L2B_tiles/", all_gedil2b_f[this_csvid], sep = "")
-                gedil2b_f <- as.data.frame(st_read(gedil2b_f_path))
-                names(gedil2b_f)[names(gedil2b_f) == "geolocation.lon_lowestmode"] <- "lon_lowestmode"
-                names(gedil2b_f)[names(gedil2b_f) == "geolocation.lat_lowestmode"] <- "lat_lowestmode"
-                names(gedil2b_f)[names(gedil2b_f) == "land_cover_data.landsat_treecover"] <- "landsat_treecover"
-            
-                # Check if GEDI L4A data is empty
-                if (nrow(gedil4_f) < 1) {
-                    cat("Error: No data for GEDI L4A\n")
-                    gedi_l24 <- gedil2_f
-                    gedi_l24$agbd <- NA
-                    gedi_l24$agbd_se <- NA
-                    gedi_l24$agbd_t <- NA
-                    gedi_l24$agbd_t_se <- NA
-                } else {
-                    # Select relevant columns from GEDI L4A
-                    gedi_l4_sub <- gedil4_f %>%
-                        dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
-                    
-                    # Join with GEDI L2A data
-                    gedi_l24 <- inner_join(gedil2_f, gedi_l4_sub, by = "shot_number")
-                }
-            
-                print(dim(gedi_l24))
-
-                # Check if GEDI L2B data is empty
-                if (nrow(gedil2b_f) < 1) {
-                    cat("Error: No data for GEDI L4A\n")
-                    gedi_l24b <- gedi_l24
-                    gedi_l24b$agbd <- NA
-                    gedi_l24b$agbd_se <- NA
-                    gedi_l24b$agbd_t <- NA
-                    gedi_l24b$agbd_t_se <- NA
-                } else {
-                    # Select relevant columns from GEDI L4A
-                    gedi_l2b_sub <- gedil2b_f %>%
-                        dplyr::select(shot_number, landsat_treecover, pai, fhd_normal)
-                    
-                    # Join with GEDI L2A data
-                    gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")
-                }
-                print(dim(gedi_l24b))
-            
-                # Initialize empty spatial object for the current iteration
-                gedi_l24b_sp <- NULL
-            
-                # Convert to spatial points data frame if there is data
-                if (nrow(gedi_l24b) > 0) {
-                    gedi_l24b_sp <- SpatialPointsDataFrame(
-                        coords = gedi_l24b[, c("lon_lowestmode", "lat_lowestmode")],
-                        data = gedi_l24b,
-                        proj4string = CRS("+init=epsg:4326")
-                    ) %>% spTransform(CRS("+init=epsg:6933"))
-                matched_gedi <- terra::extract(mras,vect(gedi_l24b_sp), df=TRUE)
-                matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp@data)
-                matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
-                convertFactor(matched0 = matched,exgedi = .) 
-
-            iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
-            print(dim(iso_matched_gedi_df))
-         }
+    # Initialize empty spatial object for the current iteration
+    for (this_csvid in seq_along(extracted)) {
+    tile_id <- basename(all_gedil2_f[this_csvid]) %>% readr::parse_number()
+    gedi_l24b <- st_read(dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
+                                           "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""),crs = "+init=epsg:4326")
         
-        # Store results in a list
-        results_list[[this_csvid]] <- iso_matched_gedi_df
+    gedi_l24b_sp <- NULL
+    if (nrow(gedi_l24b) > 0) {
+        gedi_l24b_sp <- vect(gedi_l24b, geom=c("lon_lowestmode","lat_lowestmode"), crs="epsg:6933", keepgeom=FALSE)
+
+      matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
+      matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
+      print(head(matched_gedi_metrics))
+      matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
+      convertFactor(matched0 = matched,exgedi = .) 
+      print(head(matched_gedi_metrics_filtered))
+      
+      iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
+      print(dim(iso_matched_gedi_df))
     }
     
-    # Combine all results
-    if (!is.null(iso_matched_gedi_df)) {
-        iso_matched_gedi_df <- do.call(rbind, results_list)
-    }
-    
-    cat("Done GEDI processing\n")
-    return(iso_matched_gedi_df)
-}                                             
+    # Store results in a list
+    results_list[[this_csvid]] <- iso_matched_gedi_df
+  }
+  
+  # Combine all results
+  if (!is.null(iso_matched_gedi_df)) {
+    iso_matched_gedi_df <- do.call(rbind, results_list)
+  }
+  
+  cat("Done GEDI processing\n")
+  return(iso_matched_gedi_df)
+}                                                   
 
 ############################################################################################   
                                       
