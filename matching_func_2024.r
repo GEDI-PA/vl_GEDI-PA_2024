@@ -662,7 +662,7 @@ extract_gedi2b <- function(iso3){
         dplyr::select(shot_number, landsat_treecover, pai, fhd_normal)
       ### Return here, do the join in the outer function
       # Join with GEDI L2A data
-      gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")%>% st_drop_geometry()
+      gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")
     }
     print(dim(gedi_l2b_sub))
     print(head(gedi_l24b))
@@ -677,7 +677,7 @@ extract_gedi2b <- function(iso3){
     cat(tile_id, "in", iso3, "results are written to directory\n")
             
     }}
-}     
+}       
 
 extract_gediPart2 <- function(matched,mras){
     extracted<-list.files(paste(f.path3,iso3,"_extractStep1/",sep=""), pattern=".gpkg", full.names = TRUE)
@@ -691,8 +691,9 @@ extract_gediPart2 <- function(matched,mras){
         
     gedi_l24b_sp <- NULL
     if (nrow(gedi_l24b) > 0) {
-        gedi_l24b_sp <- vect(gedi_l24b, geom=c("lon_lowestmode","lat_lowestmode"), crs="epsg:6933", keepgeom=FALSE)
-
+        gedi_l24b_sp <- vect(gedi_l24b)
+        crs(gedi_l24b_sp)  <- "epsg:6933"
+        
       matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
       matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
       print(head(matched_gedi_metrics))
@@ -715,7 +716,7 @@ extract_gediPart2 <- function(matched,mras){
   
   cat("Done GEDI processing\n")
   return(iso_matched_gedi_df)
-}                                                   
+}                                               
 
 ############################################################################################   
                                       
