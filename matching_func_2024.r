@@ -280,6 +280,7 @@ matched2ras <- function(matched_df) {
   
   return(matched_ras)
 }
+                                               
 
 convertFactor <- function(matched0, exgedi){
   exgedi$pft <- as.character(exgedi$pft)
@@ -687,13 +688,16 @@ extract_gediPart2 <- function(matched,mras){
     for (this_csvid in seq_along(extracted)) {
     tile_id <- basename(all_gedil2_f[this_csvid]) %>% readr::parse_number()
     gedi_l24b <- st_read(dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
-                                           "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""),crs = "+init=epsg:4326")
-        
-    gedi_l24b_sp <- NULL
+                                           "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
+    # gedi_l24b_sp <- NULL
     if (nrow(gedi_l24b) > 0) {
-        gedi_l24b_sp <- vect(gedi_l24b)
-        crs(gedi_l24b_sp)  <- "epsg:6933"
-        
+            # gedi_l24b_sp <- SpatialPointsDataFrame(
+            #     coords = spatial_data[, c("lon_lowestmode", "lat_lowestmode")],
+            #     data = spatial_data@data,
+            #     proj4string = CRS("epsg:4326")
+            # ) 
+      spatial_data <- vect(gedi_l24b)  
+      gedi_l24b_sp <- project(gedi_l24b_sp, "epsg:6933")
       matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
       matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
       print(head(matched_gedi_metrics))
@@ -716,7 +720,7 @@ extract_gediPart2 <- function(matched,mras){
   
   cat("Done GEDI processing\n")
   return(iso_matched_gedi_df)
-}                                               
+}                                              
 
 ############################################################################################   
                                       
