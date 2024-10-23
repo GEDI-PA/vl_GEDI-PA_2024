@@ -242,7 +242,7 @@ matched2ras <- function(matched_df) {
   matched_pts <- SpatialPointsDataFrame(coords=matched_df[,c("lon","lat")],
                                           proj4string=CRS("+init=epsg:4326"), data=matched_df) %>% 
                                           spTransform(., CRS("+init=epsg:6933"))
- matched_pts<- vect(matched_pts)
+  matched_pts<- vect(matched_pts)
   
   # Ensure fields are in appropriate formats
   matched_pts$UID <- as.integer(matched_pts$UID)
@@ -697,7 +697,7 @@ extract_gediPart2 <- function(matched,mras){
             #     proj4string = CRS("epsg:4326")
             # ) 
       spatial_data <- vect(gedi_l24b)  
-      gedi_l24b_sp <- project(gedi_l24b_sp, "epsg:6933")
+      gedi_l24b_sp <- project(spatial_data, "epsg:6933")
       matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
       matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
       print(head(matched_gedi_metrics))
@@ -720,7 +720,7 @@ extract_gediPart2 <- function(matched,mras){
   
   cat("Done GEDI processing\n")
   return(iso_matched_gedi_df)
-}                                              
+}                                               
 
 ############################################################################################   
                                       
