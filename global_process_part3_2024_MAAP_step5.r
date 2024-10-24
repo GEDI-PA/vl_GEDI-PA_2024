@@ -47,8 +47,9 @@ gediwk<-24
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
-f.path3<- "~/output"
-# f.path3<- "~/output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
+# f.path3<- "~/output"
+f.path3<- "~/output/WDPA_matching_results/"
+# f.path4<- "~/output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
 
 # f.path3<- file.path(out) #Rename folder to "output" since DPS looks for this, move up in the as default but allow an argument to change output file
 
@@ -181,11 +182,11 @@ for (this_rds in matched_PAs) {
     id_pa <- basename(this_rds) %>% readr::parse_number() %>% unique()
     
     # Construct the path to read the RDS file
-    rds_path <- s3_get(paste(f.path2,iso3,"_wk",gediwk,"Work","/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
+    rds_path <- paste(f.path2,iso3,"_wk",gediwk,"Work","/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
     
     # Read the RDS file with error handling
     matched <- tryCatch({
-        readRDS(rds_path)
+        readRDS(s3_get(rds_path))
     }, error = function(e) {
         cat("Error reading RDS file for PA", id_pa, ":", e$message, "\n")
         return(NULL)
