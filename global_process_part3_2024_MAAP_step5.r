@@ -181,7 +181,7 @@ for (this_rds in matched_PAs) {
     id_pa <- basename(this_rds) %>% readr::parse_number() %>% unique()
     
     # Construct the path to read the RDS file
-    rds_path <- paste(f.path3, iso3, "_wk", gediwk, "/", iso3, "_pa_", id_pa, "_matching_results_wk24.RDS", sep = "")
+    rds_path <- s3_get(paste(f.path2,iso3,"_wk",gediwk,"Work","/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep=""))
     
     # Read the RDS file with error handling
     matched <- tryCatch({
