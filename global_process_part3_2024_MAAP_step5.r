@@ -11,6 +11,7 @@ if (length(args)==0) {
 } else if (length(args)>=1) {
   
   iso3 <- args[1]  #country to process
+  out <- args[2]
 #  flag <- args[2]  #"run all" PAs or "run remaining" only
   #gediwk <- args[2]   #the # of weeks GEDI data to use
   #mproc <- as.integer(args[3])  #the number of cores to use for matching
@@ -47,7 +48,7 @@ gediwk<-24
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
-f.path3<- "output/"
+f.path3<- file.path(out)
 # f.path3<- "~/output/WDPA_matching_results/"
 # f.path4<- "~/output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
 
