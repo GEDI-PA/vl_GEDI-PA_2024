@@ -673,7 +673,9 @@ extract_gedi2b <- function(iso3){
     # names(gedi_l24b)[names(gedi_l24b) == "lat_lowestmode"] <- "latlow"
     # names(gedi_l24b)[names(gedi_l24b) == "landsat_treecover"] <- "landtree"
     # names(gedi_l24b)[names(gedi_l24b) == "geolocation.sensitivity_a2"] <- "geosens"
-    st_write(gedi_l24b, dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
+    # st_write(gedi_l24b, dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
+    #                                        "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
+    st_write(gedi_l24b, dsn = paste(f.path3, iso3, 
                                            "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
     cat(tile_id, "in", iso3, "results are written to directory\n")
             
@@ -681,14 +683,17 @@ extract_gedi2b <- function(iso3){
 }       
 
 extract_gediPart2 <- function(matched,mras){
-    extracted<-list.files(paste(f.path3,iso3,"_extractStep1/",sep=""), pattern=".gpkg", full.names = TRUE)
+    # extracted<-list.files(paste(f.path3,iso3,"_extractStep1/",sep=""), pattern=".gpkg", full.names = TRUE)
+    extracted<-list.files(paste(f.path3), pattern=".gpkg", full.names = TRUE)
     iso_matched_gedi_df <- NULL
     results_list <- list()
     # Initialize empty spatial object for the current iteration
     for (this_csvid in seq_along(extracted)) {
     tile_id <- basename(all_gedil2_f[this_csvid]) %>% readr::parse_number()
-    gedi_l24b <- st_read(dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
+    gedi_l24b <- st_read(dsn = paste(f.path3, iso3, 
                                            "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
+    # gedi_l24b <- st_read(dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
+    #                                        "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
     # gedi_l24b_sp <- NULL
     if (nrow(gedi_l24b) > 0) {
             # gedi_l24b_sp <- SpatialPointsDataFrame(
