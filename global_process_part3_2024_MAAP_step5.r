@@ -181,13 +181,6 @@ for (tile in seq_along(all_gedil2_f[1:2])){
         })
     }
 
-#Get variables to add to iso_matched_gedi
-variables = []
-for n in np.arange(0, 30,1):
-    variables.append('cover_z' + str(n))
-    variables.append('pai_z' + str(n))
-    variables.append('pavd_z' + str(n))
-
 
 for (this_rds in matched_PAs) {
     
