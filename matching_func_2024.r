@@ -607,7 +607,7 @@ extract_gedi2b <- function(iso3){
   # # Iterate over the sequence of indices for your files
   for (this_csvid in seq_along(all_gedil2_f)) {
     tile_id <- basename(all_gedil2_f[this_csvid]) %>% readr::parse_number()
-    if(file.exists(paste(f.path3, iso3,"_extractStep1/", iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))){
+    if(file.exists(paste(f.path3, iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))){
        print("File already exists",sep="")
        } else {
     cat("Reading in no. ", this_csvid, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
