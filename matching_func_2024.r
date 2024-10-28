@@ -598,27 +598,27 @@ extract_gedi <- function(matched, mras){
  #*************************************
  # NON PARALLEL VERSION ADDING IN L2B
  # **************************************
-                                      
-extract_gedi2b <- function(iso3){
+
+                                               
+extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     # Initialize an empty list to store results
-  results_list <- list()
+  # results_list <- list()
   ### TODO: Are you sure you need the next line?
   iso_matched_gedi_df <- NULL # Initialize before loop
-  # # Iterate over the sequence of indices for your files
-  for (this_csvid in seq_along(all_gedil2_f)) {
-    tile_id <- basename(all_gedil2_f[this_csvid]) %>% readr::parse_number()
-    if(file.exists(paste(f.path3, iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))){
-       print("File already exists",sep="")
-       } else {
-    cat("Reading in no. ", this_csvid, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
+ 
+   filepath <- paste(f.path3, iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = "")
+   if(file.exists(filepath)){
+      print("File already exists",sep="")
+      } else {
+   cat("Reading in no. ", tile, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
     
     ### Make this it's own function
     # Read GEDI L4A data
-    gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/", all_gedil4_f[this_csvid], sep = "")
+    gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/",iso3,"/", all_gedil4_f[tile], sep = "")
     gedil4_f <- st_read(gedil4_f_path, int64_as_string = TRUE)
     
     # Read GEDI L2A data
-    gedil2_f_path <- paste(gedipath, "WDPA_gedi_L2A_tiles/", all_gedil2_f[this_csvid], sep = "")
+    gedil2_f_path <- paste(gedipath, "WDPA_gedi_L2A_tiles/",iso3,"/", all_gedil2_f[tile], sep = "")
     gedil2_f <- st_read(gedil2_f_path, int64_as_string = TRUE)
     
     # Check if GEDI L4A data is empty
@@ -642,7 +642,7 @@ extract_gedi2b <- function(iso3){
     
     ###TODO: Make this it's own function
     # Read GEDI L2B data
-    gedil2b_f_path <- paste(gedipath, "WDPA_gedi_L2B_tiles/", all_gedil2b_f[this_csvid], sep = "")
+    gedil2b_f_path <- paste(gedipath, "WDPA_gedi_L2B_tiles/",iso3,"/", all_gedil2b_f[tile], sep = "")
     gedil2b_f <- st_read(gedil2b_f_path, int64_as_string = TRUE)
     names(gedil2b_f)[names(gedil2b_f) == "geolocation.lon_lowestmode"] <- "lon_lowestmode"
     names(gedil2b_f)[names(gedil2b_f) == "geolocation.lat_lowestmode"] <- "lat_lowestmode"
@@ -675,11 +675,11 @@ extract_gedi2b <- function(iso3){
     # names(gedi_l24b)[names(gedi_l24b) == "geolocation.sensitivity_a2"] <- "geosens"
     # st_write(gedi_l24b, dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
     #                                        "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
-    st_write(gedi_l24b, dsn = paste(f.path3, iso3, 
-                                           "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
-    cat(tile_id, "in", iso3, "results are written to directory\n")
-            
-    }}
+    st_write(gedi_l24b, dsn = filepath)
+    cat(tile_id, "in", iso3, "results are written to directory\n",filepath)
+         
+    }
+    return(filepath)
 }       
 
 extract_gediPart2 <- function(matched,mras){
