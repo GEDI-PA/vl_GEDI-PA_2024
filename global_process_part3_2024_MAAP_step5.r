@@ -87,24 +87,26 @@ flag <- "run all"
 #---------Pull appropriate GEDI Tiles-------#
 # TO DO: SEPARATE TILES BY COUNTRY
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2A_tiles/",sep=""))
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2A_tiles/",iso3,"/",sep=""))
 all_gedil2_f <- sapply(results$Contents, function(x) {x$Key})
 pattern=paste(".gpkg",sep="")
 all_gedil2_f <- grep(pattern, all_gedil2_f, value=TRUE)
 all_gedil2_f <- basename(all_gedil2_f)
 
 results4 <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep=""))
+                            Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",iso3,"/",sep=""))
 all_gedil4_f <- sapply(results4$Contents, function(x) {x$Key})
 pattern4=paste(".gpkg",sep="")
 all_gedil4_f <- grep(pattern4, all_gedil4_f, value=TRUE)
 all_gedil4_f <- basename(all_gedil4_f)
 results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-                        Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2B_tiles/",sep=""))
+                        Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2B_tiles/",iso3,"/",sep=""))
 all_gedil2b_f <- sapply(results2b$Contents, function(x) {x$Key})
 pattern=paste(".gpkg",sep="")
 all_gedil2b_f <- grep(pattern, all_gedil2b_f, value=TRUE)
 all_gedil2b_f <- basename(all_gedil2b_f)
+
+
 
 #---------------STEP5. GEDI PROCESSING - using GEDI shots to extract the treatment/control status, also extract the MODIS PFT for AGB prediction---------------- 
 # if (file.exists(paste(f.path,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_gedi_extracted_matching_wk",gediwk,".RDS", sep=""))){
@@ -142,7 +144,7 @@ matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','mag
 length(matched_PAs)
 
 if(flag=="run all"){  #determine how many PAs to run the extraction process
-  matched_PAs <- matched_PAs
+  matched_PAs <- matched_PAs[1:3] #For testing purposes
   cat("Step 5: runing extraction on all", length(matched_PAs),"of non-NA matched results in", iso3,"\n")
 } else if (flag=="run remaining"){
   # pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
@@ -169,13 +171,23 @@ Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_extract/",sep=""))
 ## Changed error catching and loop now works ##
 #Oct 15 Updated to split loop into multiple extract_gedi functions
 
+for (tile in seq_along(all_gedil2_f[1:2])){
+    tile_id <- basename(all_gedil2_f[tile]) %>% readr::parse_number()
+    iso_test<-tryCatch({
+        extract_gedi2b(iso3 = iso3,tile_id = tile_id,f.path3 = f.path3,gedipath = gedipath)
+        }, error = function(e) {
+            cat("Error extracting GEDI data for tile:", e$message, "\n")
+            return(NULL)
+        })
+    }
 
-iso_test<-tryCatch({
-    extract_gedi2b(iso3 = iso3)
-    }, error = function(e) {
-        cat("Error extracting GEDI data for tile:", e$message, "\n")
-        return(NULL)
-    })
+#Get variables to add to iso_matched_gedi
+variables = []
+for n in np.arange(0, 30,1):
+    variables.append('cover_z' + str(n))
+    variables.append('pai_z' + str(n))
+    variables.append('pavd_z' + str(n))
+
 
 for (this_rds in matched_PAs) {
     
