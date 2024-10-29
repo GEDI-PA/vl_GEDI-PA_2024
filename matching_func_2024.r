@@ -606,7 +606,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
   ### TODO: Are you sure you need the next line?
   iso_matched_gedi_df <- NULL # Initialize before loop
  
-   filepath <- paste(f.path3, iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = "")
+   filepath <- file.path(f.path3, paste(iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
    if(file.exists(filepath)){
       print("File already exists",sep="")
       } else {
@@ -682,49 +682,46 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     return(filepath)
 }       
 
-extract_gediPart2 <- function(matched,mras){
-    # extracted<-list.files(paste(f.path3,iso3,"_extractStep1/",sep=""), pattern=".gpkg", full.names = TRUE)
-    extracted<-list.files(paste(f.path3), pattern=".gpkg", full.names = TRUE)
+extract_gediPart2 <- function(matched,mras,extracted){
     iso_matched_gedi_df <- NULL
     results_list <- list()
     # Initialize empty spatial object for the current iteration
     for (this_csvid in seq_along(extracted)) {
-    tile_id <- basename(all_gedil2_f[this_csvid]) %>% readr::parse_number()
-    gedi_l24b <- st_read(dsn = paste(f.path3, iso3, 
-                                           "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
-    # gedi_l24b <- st_read(dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
+
+    # gedi_l24b <- st_read(dsn = paste(f.path3, iso3, 
     #                                        "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
-    # gedi_l24b_sp <- NULL
-    if (nrow(gedi_l24b) > 0) {
-            # gedi_l24b_sp <- SpatialPointsDataFrame(
-            #     coords = spatial_data[, c("lon_lowestmode", "lat_lowestmode")],
-            #     data = spatial_data@data,
-            #     proj4string = CRS("epsg:4326")
-            # ) 
-      spatial_data <- vect(gedi_l24b)  
-      gedi_l24b_sp <- project(spatial_data, "epsg:6933")
-      matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
-      matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
-      print(head(matched_gedi_metrics))
-      matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
-      convertFactor(matched0 = matched,exgedi = .) 
-      print(head(matched_gedi_metrics_filtered))
-      
-      iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
-      print(dim(iso_matched_gedi_df))
-    }
+    
+        # if (nrow(this_csvid) > 0) {
+                # gedi_l24b_sp <- SpatialPointsDataFrame(
+                #     coords = spatial_data[, c("lon_lowestmode", "lat_lowestmode")],
+                #     data = spatial_data@data,
+                #     proj4string = CRS("epsg:4326")
+                # ) 
+          # spatial_data <- vect(gedi_l24b)
+          spatial_data <- vect(extracted[this_csvid])
+          gedi_l24b_sp <- project(spatial_data, "epsg:6933")
+          matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
+          matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
+          print(head(matched_gedi_metrics))
+          matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
+          convertFactor(matched0 = matched,exgedi = .) 
+          print(head(matched_gedi_metrics_filtered))
+          
+          iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
+          print(dim(iso_matched_gedi_df))
+        # }
     
     # Store results in a list
     results_list[[this_csvid]] <- iso_matched_gedi_df
-  }
+      }
   
-  # Combine all results
-  if (!is.null(iso_matched_gedi_df)) {
-    iso_matched_gedi_df <- do.call(rbind, results_list)
-  }
-  
-  cat("Done GEDI processing\n")
-  return(iso_matched_gedi_df)
+      # Combine all results
+      if (!is.null(iso_matched_gedi_df)) {
+        iso_matched_gedi_df <- do.call(rbind, results_list)
+      }
+      
+      cat("Done GEDI processing\n")
+      return(iso_matched_gedi_df)
 }                                               
 
 ############################################################################################   
