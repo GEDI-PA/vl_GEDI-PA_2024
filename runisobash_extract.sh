@@ -2,7 +2,7 @@
 basedir=$( cd "$(dirname "$0")" ; pwd -P )
 
 mkdir -p output
-outdir=${PWD}/ouput
+outdir=${PWD}/output
 
 country=${1}
 
