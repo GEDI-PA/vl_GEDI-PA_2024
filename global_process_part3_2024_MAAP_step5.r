@@ -223,8 +223,9 @@ for (this_rds in matched_PAs) {
 
     # iso_test<-extract_gedi2b(iso3 = iso3)
     # Extract GEDI data with error handling
+    extracted<-list.files(f.path3, pattern=".gpkg", full.names = TRUE)
     iso_matched_gedi <- tryCatch({
-        extract_gediPart2(matched = matched, mras = mras)
+        extract_gediPart2(matched = matched, mras = mras,extracted = extracted)
     }, error = function(e) {
         cat("Error extracting GEDI data for PA", id_pa, ":", e$message, "\n")
         return(NULL)
@@ -271,9 +272,9 @@ for (this_rds in matched_PAs) {
     dir.create(file.path(f.path3, "WDPA_GEDI_extract"), recursive = TRUE, showWarnings = FALSE)
     
     # Save results to RDS and CSV files
-    saveRDS(iso_matched_gedi, file = paste(f.path3, "WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
+    saveRDS(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
                                            "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
-    write.csv(iso_matched_gedi, file = paste(f.path3, "WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
+    write.csv(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
                                               "_iso_matched_gedi_sub_wk_", gediwk, ".csv", sep = ""))
     
     cat(id_pa, "in", iso3, "results are written to directory\n")
