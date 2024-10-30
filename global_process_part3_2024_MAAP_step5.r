@@ -144,7 +144,7 @@ matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','mag
 length(matched_PAs)
 
 if(flag=="run all"){  #determine how many PAs to run the extraction process
-  matched_PAs <- matched_PAs[1:3] #For testing purposes
+  matched_PAs <- matched_PAs
   cat("Step 5: runing extraction on all", length(matched_PAs),"of non-NA matched results in", iso3,"\n")
 } else if (flag=="run remaining"){
   # pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
