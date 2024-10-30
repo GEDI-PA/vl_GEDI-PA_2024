@@ -171,7 +171,7 @@ Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_extract/",sep=""))
 ## Changed error catching and loop now works ##
 #Oct 15 Updated to split loop into multiple extract_gedi functions
 
-for (tile in seq_along(all_gedil2_f[1:2])){
+for (tile in seq_along(all_gedil2_f)){
     tile_id <- basename(all_gedil2_f[tile]) %>% readr::parse_number()
     iso_test<-tryCatch({
         extract_gedi2b(iso3 = iso3,tile_id = tile_id,f.path3 = f.path3,gedipath = gedipath)
