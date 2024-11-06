@@ -225,7 +225,7 @@ propensity_filter <- function(pa_df, d_control_local){
 #     ptssub <- pts[pts$ISO3166==iso3,]
 #     ptssubr <- rasterize(ptssub@coords[,1:2,drop=FALSE],rtemplate,background=NA, field=ptssub$EventType)
 #     m <- merge(polysubr,ptssubr)
-#     names(m) <- "PADDD"
+#     names(m) <-  "PADDD"
 #     return(m)
 #   } else {
 #     # print("in neither")
@@ -239,10 +239,12 @@ matched2ras <- function(matched_df) {
   
   cat("Converting the matched csv to a raster stack for extraction\n")
   
-  matched_pts <- SpatialPointsDataFrame(coords=matched_df[,c("lon","lat")],
-                                          proj4string=CRS("+init=epsg:4326"), data=matched_df) %>% 
-                                          spTransform(., CRS("+init=epsg:6933"))
-  matched_pts<- vect(matched_pts)
+  # matched_pts <- SpatialPointsDataFrame(coords=matched_df[,c("lon","lat")],
+  #                                         proj4string=CRS("+init=epsg:4326"), data=matched_df) %>% 
+  #                                         spTransform(., CRS("+init=epsg:6933"))
+  matched_pts<- vect(matched_df)
+  crs(matched_pts)<-"epsg:4326"
+  matched_pts<-project(matched_pts, "epsg:6933")
   
   # Ensure fields are in appropriate formats
   matched_pts$UID <- as.integer(matched_pts$UID)
@@ -682,26 +684,22 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     return(filepath)
 }       
 
-extract_gediPart2 <- function(matched,mras,extracted){
+extract_gediPart2 <- function(matched,mras,extracted,glad_rast){
     iso_matched_gedi_df <- NULL
     results_list <- list()
     # Initialize empty spatial object for the current iteration
     for (this_csvid in seq_along(extracted)) {
 
-    # gedi_l24b <- st_read(dsn = paste(f.path3, iso3, 
-    #                                        "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
-    
-        # if (nrow(this_csvid) > 0) {
-                # gedi_l24b_sp <- SpatialPointsDataFrame(
-                #     coords = spatial_data[, c("lon_lowestmode", "lat_lowestmode")],
-                #     data = spatial_data@data,
-                #     proj4string = CRS("epsg:4326")
-                # ) 
-          # spatial_data <- vect(gedi_l24b)
           spatial_data <- vect(extracted[this_csvid])
+
+          extent <- terra::ext(spatial_data)
+          selection <- terra::crop(glad_rast, extent)
+          matched_glad <- terra::extract(glad_rast,spatial_data, df=TRUE)
+
           gedi_l24b_sp <- project(spatial_data, "epsg:6933")
           matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
           matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
+          matched_gedi_metrics <- inner_join(matched_gedi_metrics, matched_glad, by = "ID")
           print(head(matched_gedi_metrics))
           matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
           convertFactor(matched0 = matched,exgedi = .) 
@@ -722,7 +720,7 @@ extract_gediPart2 <- function(matched,mras,extracted){
       
       cat("Done GEDI processing\n")
       return(iso_matched_gedi_df)
-}                                               
+}                                            
 
 ############################################################################################   
                                       
