@@ -82,6 +82,16 @@ adm_prj <- project(vect(adm), "epsg:6933")
 
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 
+#GLAD Landcover Raster 
+# setGDALconfig("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+# setGDALconfig("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", "TIF")
+
+glad_2020 <- "/vsicurl/https://s3.openlandmap.org/arco/lc_glad.glcluc_c_30m_s_20200101_20201231_go_epsg.4326_v20230901.tif"
+glad_rast <- rast(glad_2020, vsi=TRUE)
+names(glad_rast) <- "gladLand2020"
+
+#End GLAD Codes
+
 flag <- "run all"
 
 #---------Pull appropriate GEDI Tiles-------#
@@ -182,6 +192,8 @@ for (tile in seq_along(all_gedil2_f)){
     }
 
 
+
+
 for (this_rds in matched_PAs) {
     
     # Extract PA ID from the filename
@@ -225,7 +237,7 @@ for (this_rds in matched_PAs) {
     # Extract GEDI data with error handling
     extracted<-list.files(f.path3, pattern=".gpkg", full.names = TRUE)
     iso_matched_gedi <- tryCatch({
-        extract_gediPart2(matched = matched, mras = mras,extracted = extracted)
+        extract_gediPart2(matched = matched, mras = mras,extracted = extracted, glad_rast=glad_rast)
     }, error = function(e) {
         cat("Error extracting GEDI data for PA", id_pa, ":", e$message, "\n")
         return(NULL)
@@ -244,9 +256,9 @@ for (this_rds in matched_PAs) {
     
     # Process and select columns
     iso_matched_gedi <- iso_matched_gedi %>%
-        dplyr::select("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", 
+        dplyr::select("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", "gladLand2020",
                       # "lon_lowestmode", "lat_lowestmode",
-                      "rh25", "rh50", "rh75", "rh90", "rh98","UID","fhd_normal","pai","landsat_treecover")
+                      "rh25", "rh50", "rh75", "rh90", "rh98","UID","fhd_normal","pai","landsat_treecover",)
     
     # Determine biome name
     if (length(unique(iso_matched_gedi$wwfbiom)) > 1) {
