@@ -19,18 +19,18 @@ if (length(args)==0) {
 #-------------------------------------------------------------------------------
 
 
-# options(repos = c(CRAN = "https://cloud.r-project.org"))
+options(repos = c(CRAN = "https://cloud.r-project.org"))
 
-# # List of CRAN packages to be installed
-# cran_packages <- c(
-#   "s3","optmatch", "RItools"
-# )
+# List of CRAN packages to be installed
+cran_packages <- c(
+  "s3","optmatch", "RItools"
+)
 
-# # Install CRAN packages
-# install.packages(cran_packages, dependencies = TRUE)
+# Install CRAN packages
+install.packages(cran_packages, dependencies = TRUE)
 
-# options(warn=-1)
-# options(dplyr.summarise.inform = FALSE)
+options(warn=-1)
+options(dplyr.summarise.inform = FALSE)
 
 packages <- c("sp","sf","rgeos","dplyr","plyr","ggplot2","mapview","stringr","terra",
               "foreach","optmatch","doParallel","RItools",
@@ -253,12 +253,24 @@ for (this_rds in matched_PAs) {
     tElapsed <- Sys.time() - startTime
     cat(tElapsed, "for extracting all PAs in", iso3, "\n")
     cat("Done GEDI for PA", match(this_rds, matched_PAs), "out of", length(matched_PAs), "\n")
-    
+
+    variables <- c()
+
+    # Loop from 0 to 29
+    for (n in 0:29) {
+      # Append the desired strings to the vector
+      variables <- c(variables, paste("cover_z", n, sep=""))
+      variables <- c(variables, paste("pai_z", n, sep=""))
+      variables <- c(variables, paste("pavd_z", n, sep=""))
+      }
+        
+        
+    selected_columns <- c("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", "gladLand2020",
+                      "UID","fhd_normal","pai","landsat_treecover","rh20","rh70", "rh10", "rh60",  
+                          "rh90", "rh50", "rh40", "rh98","rh80","rh30","rh25","rh75")
     # Process and select columns
     iso_matched_gedi <- iso_matched_gedi %>%
-        dplyr::select("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", "gladLand2020",
-                      # "lon_lowestmode", "lat_lowestmode",
-                      "rh25", "rh50", "rh75", "rh90", "rh98","UID","fhd_normal","pai","landsat_treecover",)
+        dplyr::select(c(selected_columns, variables))
     
     # Determine biome name
     if (length(unique(iso_matched_gedi$wwfbiom)) > 1) {
