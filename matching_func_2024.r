@@ -649,7 +649,17 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     names(gedil2b_f)[names(gedil2b_f) == "geolocation.lon_lowestmode"] <- "lon_lowestmode"
     names(gedil2b_f)[names(gedil2b_f) == "geolocation.lat_lowestmode"] <- "lat_lowestmode"
     names(gedil2b_f)[names(gedil2b_f) == "land_cover_data.landsat_treecover"] <- "landsat_treecover"
-    
+
+    variables <- c()
+
+    # Loop from 0 to 29
+    for (n in 0:29) {
+      # Append the desired strings to the vector
+      variables <- c(variables, paste("cover_z", n, sep=""))
+      variables <- c(variables, paste("pai_z", n, sep=""))
+      variables <- c(variables, paste("pavd_z", n, sep=""))
+    }
+        
     # Check if GEDI L2B data is empty
     if (nrow(gedil2b_f) < 1) {
       cat("Error: No data for GEDI L4A\n")
@@ -662,7 +672,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
       # Select relevant columns from GEDI L4A
       ### Drop the geometry, it's redundant
       gedi_l2b_sub <- gedil2b_f %>% st_drop_geometry() %>%
-        dplyr::select(shot_number, landsat_treecover, pai, fhd_normal)
+        dplyr::select(shot_number, landsat_treecover, pai, fhd_normal,variables)
       ### Return here, do the join in the outer function
       # Join with GEDI L2A data
       gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")
@@ -791,4 +801,4 @@ rasExtract2020 <- function(l4_sp){
 #   return(iso_matched_gedi_df)
 # }
 # stopImplicitCluster()
-#   
+# 
