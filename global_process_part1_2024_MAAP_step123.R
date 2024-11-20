@@ -3,6 +3,17 @@
 # This global processing script is derived from the global processing notebook 
 #the input can be the iso3 code (3-character) for one or multiple countries 
 
+# Set CRAN mirror
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+# List of CRAN packages to be installed
+cran_packages <- c(
+  "s3"
+)
+
+# Install CRAN packages
+install.packages(cran_packages, dependencies = TRUE)
+
 library("terra")
 library("dplyr")
 library("sf")
@@ -20,6 +31,7 @@ if (length(args)==0) {
 } else if (length(args)>=1) {
   
   iso3 <- args[1]  #country to process
+  out <- args[2]
   #gediwk <- args[2]   #the # of weeks GEDI data to use
   #mproc <- as.integer(args[3])  #the number of cores to use for matching
 }
@@ -29,6 +41,8 @@ cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+f.path3<- file.path(out)
 
 matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
@@ -68,9 +82,10 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   GRID.lons.adm   <- crop(GRID.lons, adm_prj)
   GRID.lons.adm.m <- mask(GRID.lons.adm, adm_prj)
   rm(GRID.lats, GRID.lons, GRID.lats.adm, GRID.lons.adm)
-  
+
   #1.3) extract coordinates of raster cells with valid GEDI data in them
-  gedi_folder <- paste(f.path,"WDPA_gedi_L4A_tiles/",sep="")
+  gedi_folder <- paste(gedipath,"WDPA_gedi_L4A_tiles/",iso3,"/",sep="")
+# gedi_folder <- paste("~/my-public-bucket/GEDI_global_PA_v2/WDPA_gedi_L4A_tiles/",sep="")
   tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
   iso3_tiles <- tileindex_df$tileindexiso3_tiles <- tileindex_df$tileindex
     
@@ -78,12 +93,15 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   for(i in 1:length(iso3_tiles)){
     
     iso3_tile_in <- paste("tile_num_",iso3_tiles[i],sep="")
-    
+      
+
+    print(paste(iso3_tile_in," processing",sep=""))
+    print(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))
     #if(!file.exists(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep=""))){
     #    print(paste(iso3_tile_in," does not exist",sep=""))
     #    } else {
-    print(paste(iso3_tile_in," processing",sep=""))
-    gedi_data <- read_sf(s3_get(paste(gedi_folder,iso3_tile_in,"_L4A.gpkg",sep="")), int64_as_string = TRUE) %>%
+    geopath<- paste0(gedi_folder,iso3_tile_in,"_L4A.gpkg")
+    gedi_data <- read_sf(geopath,layer=paste0(iso3_tile_in,"_L4A")) %>% #NO S3 get here, if spatial format, don't use S3 lib
       dplyr::select(lon_lowestmode,lat_lowestmode)
     gedi_data <- gedi_data %>% st_drop_geometry()
     gedi_pts  <- vect(gedi_data, geom=c("lon_lowestmode","lat_lowestmode"), crs="epsg:4326", keepgeom=FALSE)        
@@ -111,9 +129,12 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   }
   #GRID.for.matching <- SpatialPoints(coords = GRID.coords, proj4string=CRS("+init=epsg:4326"))
   GRID.for.matching <- vect(GRID.coords, geom=c("x.overlap","y.overlap"), crs = "epsg:4326")
+  dir.create(file.path(f.path3, "WDPA_grids"), recursive = TRUE, showWarnings = FALSE)
+  filename_out <- paste(f.path3, "/WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep="")
+  print(filename_out)
+  # s3saveRDS(x=GRID.for.matching, bucket = "s3://maap-ops-workspace/", object = filename_out, region = "us-west-2")
+  saveRDS(GRID.for.matching, filename_out)
 
-  filename_out <- paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep="")
-  saveRDS(GRID.for.matching, file = filename_out)
 #} else if (file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))) {
 #  cat(paste("STEP 1: Grid file exists, no need to process grids for ",iso3, "\n"))
 #}
@@ -127,12 +148,12 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
 #  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))){
 #      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))}    
   cat("Step 2.1: Preparing control dataset for", iso3, "\n")
-  GRID.pts.nonPA <- project(GRID.for.matching, "epsg:4326")
+  GRID.pts.nonPA <- project(GRID.for.matching, "epsg:4326") #***Ask Vero why we're doing this 1 at a time, rather than all at once maybe vectorize
   for(i in 1:length(allPAs)){
     PA          <- vect(allPAs[i,])
-    PA_prj      <- project(PA, "epsg:6933")
+    PA_prj      <- project(PA, "epsg:6933") #**Why do we have to change the projection twice?
     PA_prj_buff <- buffer(PA_prj, width = 10000) ##10km buffer
-    PA2         <- project(PA_prj_buff, "epsg:4326")
+    PA2         <- project(PA_prj_buff, "epsg:4326") 
     overlap     <- GRID.pts.nonPA[PA2]
     if(length(overlap)>0){
       GRID.pts.nonPA0 <- st_difference(sf::st_as_sf(GRID.pts.nonPA), sf::st_as_sf(PA2)) ##remove pts inside poly
@@ -199,8 +220,9 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
   
   d_control$UID <-  seq.int(nrow(d_control))
   
-  filename_out <- paste("output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
-  saveRDS(d_control, file = filename_out)  
+  filename_out <- paste(f.path3, "/WDPA_grids/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
+  # s3saveRDS(x = d_control, bucket = "s3://maap-ops-workspace/", object = filename_out, region = "us-west-2")  
+  saveRDS(d_control, filename_out)
 #} else if (file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
 #  cat("Step 2.1: preppred control dataset already exists for", iso3, "no need for reprocessing\n")
 #}
@@ -286,11 +308,13 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       
       d_pa$UID <- seq.int(nrow(d_pa))
 
-      filename_out <- paste("output/",iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
-      saveRDS(d_pa, file = filename_out)  
+      dir.create(file.path(paste(f.path3,"/", iso3,"_testPAs",sep="")), recursive = TRUE, showWarnings = FALSE)
+      filename_out <- paste(f.path3,"/",iso3,"_testPAs","/","prepped_pa_", testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
+      # s3saveRDS(x=d_pa, bucket = "s3://maap-ops-workspace/", object = filename_out, region = "us-west-2") 
+    print(filename_out)
+     saveRDS(d_pa, filename_out)
     }
   }
 #} else if (length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""),pattern = paste(gediwk,".RDS",sep="")))==length(allPAs)){
 #  cat("Step 3.1: prepped PA treatment dataset already exists for ", iso3, "no need for reprocessing\n")
 #}
-
