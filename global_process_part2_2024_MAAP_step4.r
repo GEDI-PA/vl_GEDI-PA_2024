@@ -186,7 +186,9 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   N <- ceiling(nrow(d_wocat_all)/300)
   l <- tryCatch(split(d_wocat_all, sample(1:N, nrow(d_wocat_all), replace=TRUE)),error=function(e) return(NULL))
   # l <- tryCatch(split(d_wocat_all, (as.numeric(rownames(d_wocat_all))-1) %/% 300),error=function(e) return(0))
-  
+
+
+                
   if (length(l)<900 && length(l)>0 ){
     pa_match <- data.frame()
     for (pa_c in 1:length(l)){
@@ -218,6 +220,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
             # new_d <- tryCatch(rbind(d_wocat_chunk,d_control_all),error=function(e) return(NULL))
             #create a smaller distance matrix
             m_all <- tryCatch(match_wocat(new_d, pid=id_pa),error=function(e) return(NULL))
+                
             # m_all <- match_wocat(new_d)
             m_all2 <- tryCatch(m_all[1,],error=function(e) return(NULL))
             # m_all2 <- m_all[1,]
