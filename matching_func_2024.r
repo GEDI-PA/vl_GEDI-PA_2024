@@ -186,8 +186,10 @@ propensity_filter <- function(pa_df, d_control_local){
   # boxplot(ps)  #check the distribution of propensity scores for treatment and controls
   #filter out the controls with propensity scores outside of the overlapping region
   d_all$propensity_score <- fitted(ps)
-  write.csv(d_all,
-            paste(f.path3,iso3,"_wk",gediwk,"_prefilter_ps/",iso3,"_pa_",id_pa,"_pre_filter_ps_wk",gediwk,".csv", sep=""))
+  filepath<-file.path(f.path3,paste0(iso3,"_wk",gediwk,"_prefilter_ps/"))
+  dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
+  # dir.create(paste(f.path3,iso3,"_wk",gediwk,"_prefilter_ps/", sep=""), recursive = TRUE, showWarnings = FALSE)
+  write.csv(d_all, paste(filepath,iso3,"_pa_",id_pa,"_pre_filter_ps_wk",gediwk,".csv", sep=""))
 
   d_sep <- d_all %>% dplyr::group_by(status)
   d_sep_range <- d_all %>% dplyr::group_by(status)%>% 
