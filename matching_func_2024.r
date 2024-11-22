@@ -148,21 +148,24 @@ match_wocat <- function(df, pid) {
                       }
                       if(nrow(this_d)==0){
                         log_mes <- paste(pid,"-Matching without wwfecoreg:Failed\n",sep="")
-                        dir.create(paste(paste(f.path3,"WDPA_matching_log/",iso3,sep="")))
-                        cat(log_mes,file=paste(f.path3,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                        filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
+                        dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
+                        cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
                         return(NULL)
                       } else{
                         log_mes <- paste(pid,"-Matching without wwfecoreg:Succeed\n",sep="")
-                        dir.create(paste(paste(f.path3,"WDPA_matching_log/",iso3,sep="")))
-                        cat(log_mes,file=paste(f.path3,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                        filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
+                        dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
+                        cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
                         match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
                         return(match_results)
                       }
                     } else {
                       log_mes <- paste(pid,"-Matching with wwfecoreg:Succeed\n",sep="")
                       match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
-                      dir.create(paste(paste(f.path3,"WDPA_matching_log/",iso3,sep="")))
-                      cat(log_mes,file=paste(f.path3,"WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                      filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
+                      dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
+                      cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
                       return(match_results)
                     }
                   }
