@@ -46,7 +46,7 @@ s3 <- paws::s3()
 gediwk<-24
 
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
-f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
+f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
 f.path3<- file.path(out)
 # f.path3<- "~/output/WDPA_matching_results/"
@@ -140,7 +140,7 @@ matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','mag
   } else {
     id_pa <- basename(this_rds)%>%readr::parse_number() %>% unique()
   }
-  matched <- readRDS(s3_get(paste(f.path2,iso3,"_wk",gediwk,"Work","/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")))
+  matched <- readRDS(s3_get(paste(f.path2,iso3,"/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")))
   if(!is.null(matched)){
     if(nrow(matched)!=0){
       matched_PAs=c(matched_PAs,this_rds) 
@@ -200,7 +200,7 @@ for (this_rds in matched_PAs) {
     id_pa <- basename(this_rds) %>% readr::parse_number() %>% unique()
     
     # Construct the path to read the RDS file
-    rds_path <- paste(f.path2,iso3,"_wk",gediwk,"Work","/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
+    rds_path <- paste(f.path2,iso3,"/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")
      
     # Read the RDS file with error handling
     matched <- tryCatch({
