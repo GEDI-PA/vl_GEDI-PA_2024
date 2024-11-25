@@ -99,7 +99,10 @@ if(!dir.exists(paste(f.path3,"/",iso3,"_wk",gediwk,"/",sep=""))){
   results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                               Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/Matching_Results","/",iso3,"/",iso3,"_testPAs/",sep=""))
   d_PAs <- sapply(results$Contents, function(x) {x$Key})
-  d_PA_id <- d_PAs %>% readr::parse_number()
+  pattern=paste(".RDS",sep="")
+  d_PAs <- grep(pattern, d_PAs, value=TRUE)
+  d_PAsBase <-basename(d_PAs)
+  d_PA_id <- d_PAsBase %>% readr::parse_number()
   runPA_id1 <- d_PA_id[!(d_PA_id %in% matched_PAid)]
     
   matched_all <- list.files(paste(f.path3,"/",iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = FALSE)
@@ -128,14 +131,15 @@ if(!dir.exists(paste(f.path3,"/",iso3,"_wk",gediwk,"/",sep=""))){
   stopImplicitCluster() #_@_
   
   if(!is.null(matched_PAs)){
-    fullmatch_ids <- matched_PAs %>%str_split("_") %>% unlist %>% .[6]
-    runPA_id2 <- d_PA_id[!(d_PA_id %in% fullmatch_ids)]
-    runPA_id <- c(runPA_id1,runPA_id2)
+    fullmatch_ids <- matched_PAs %>%readr::parse_number() %>% unique()
+    runPA_id <- d_PA_id[!(d_PA_id %in% fullmatch_ids)]
+    # runPA_id <- c(runPA_id1,runPA_id2)
+    print(runPA_id)
     
   } else{
-    fullmatch_ids <- d_PAs %>%str_split("_") %>% unlist %>% .[10]
-    runPA_id2 <- fullmatch_ids#d_PA_id[!(d_PA_id %in% fullmatch_ids)]
-    runPA_id <- c(runPA_id1,runPA_id2)
+    fullmatch_ids <- d_PAsBase %>%readr::parse_number() %>% unique()
+    runPA_id <- fullmatch_ids#d_PA_id[!(d_PA_id %in% fullmatch_ids)]
+    # runPA_id <- c(runPA_id1,runPA_id2)
     print(runPA_id)
   }
   
@@ -147,6 +151,7 @@ if(!dir.exists(paste(f.path3,"/",iso3,"_wk",gediwk,"/",sep=""))){
   } else {
     d_PAs <- NULL
   }
+  d_PAs
   write.csv(d_PAs, paste(f.path3,"/", iso3, "_wk_", gediwk, "_null_matches_rerun.csv",sep=""))
   cat("Step 4: need to rerun ", length(d_PAs),"PAs\n")
 }
@@ -159,17 +164,17 @@ startTime <- Sys.time()
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                               Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/Matching_Results","/",iso3,"/",iso3,"_testPAs/",sep=""))
 d_PAs <- sapply(results$Contents, function(x) {x$Key})
-d_PAs<- basename(d_PAs)
+d_PAs <- sapply(results$Contents, function(x) {x$Key})
 pattern=paste(".RDS",sep="")
 d_PAs <- grep(pattern, d_PAs, value=TRUE)
-d_PAs
+d_PAs<- basename(d_PAs)
 
-foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel')) %dopar% { #_@_@
-  pa <- this_pa
+foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch')) %do% { #_@_@
+  pa <- basename(this_pa)
     print(pa)
-  id_pa <-this_pa%>%readr::parse_number() %>% unique() #%>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
+  id_pa <-basename(this_pa)%>%readr::parse_number() %>% unique() #%>%str_split("_") %>% unlist %>% .[4] #With new files, check where PA ID is in string
   # cat(id_pa, "in",iso3,"\n")
-  path <- paste(f.path2,"/",iso3,"/",iso3,"_testPAs/",pa, sep="")
+    path <- paste(f.path2,"/",iso3,"/",iso3,"_testPAs/",pa, sep="")
   cat("No.", match(pa,d_PAs),"of total",length(d_PAs),"PAs in ", iso3, "\n" )
   d_pa <- readRDS(s3_get(path))
   d_filtered_prop <- tryCatch(propensity_filter(d_pa, d_control_local), error=function(e) return(NA))  #return a df of control and treatment after complete cases and propensity filters are applied
@@ -179,20 +184,18 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   
   n_control <- dim(d_control_all)[1]
   # ids_all <- d_control_all$UID   #seq(1,n_control)
-  ids_all0 <- tryCatch(d_control_all$UID, error=function(e) return(NA))
-  ids_all <- d_control_all$UID
+  ids_all0 <- tryCatch(d_control_all[['UID']], error=function(e) return(NA))
+  ids_all <- d_control_all[['UID']]
   set.seed(125)
   # cat("Using number of cores:",getDoParWorkers(),"\n")
   N <- ceiling(nrow(d_wocat_all)/300)
   l <- tryCatch(split(d_wocat_all, sample(1:N, nrow(d_wocat_all), replace=TRUE)),error=function(e) return(NULL))
   # l <- tryCatch(split(d_wocat_all, (as.numeric(rownames(d_wocat_all))-1) %/% 300),error=function(e) return(0))
-
-
-                
+ 
   if (length(l)<900 && length(l)>0 ){
     pa_match <- data.frame()
     for (pa_c in 1:length(l)){
-      ids_all <- d_control_all$UID
+      ids_all <- d_control_all[['UID']]
       cat("chunk",pa_c,"out of ",length(l), "chunks of PA", id_pa,"\n")
       
       d_wocat_chunk <- l[[pa_c]]
@@ -212,7 +215,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
             set.seed(125)
             sample_ids_bar <- sample(ids_all, n_sample)
             sample_ids <- sample(ids_all0, n_sample)
-            d_control_sample <- d_control_all[d_control_all$UID %in% sample_ids,]
+            d_control_sample <- d_control_all[d_control_all[['UID']] %in% sample_ids,]
             ids_all <-setdiff(ids_all, sample_ids_bar)    #ids_all[-sample_ids]
             # cat("protected uid", head(d_wocat_chunk$UID),"\n")
             # All approaches
@@ -220,7 +223,6 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
             # new_d <- tryCatch(rbind(d_wocat_chunk,d_control_all),error=function(e) return(NULL))
             #create a smaller distance matrix
             m_all <- tryCatch(match_wocat(new_d, pid=id_pa),error=function(e) return(NULL))
-                
             # m_all <- match_wocat(new_d)
             m_all2 <- tryCatch(m_all[1,],error=function(e) return(NULL))
             # m_all2 <- m_all[1,]
@@ -234,7 +236,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
               matched_control <- m_all2$df %>% dplyr::filter(status==FALSE)
               cat("matched_protected", nrow(matched_protected),"\n")
               n_matches <- n_matches + nrow(matched_protected)
-              d_wocat_chunk <- d_wocat_chunk[-(match(matched_protected$UID,d_wocat_chunk$UID)),]
+              d_wocat_chunk <- d_wocat_chunk[-(match(matched_protected$UID,d_wocat_chunk[['UID']])),]
               # d_control_all <- d_control_all[-(match(matched_control$UID,d_control$UID)),]
             } 
             # ids_all <-setdiff(ids_all, sample_ids)
@@ -250,8 +252,8 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       pa_match <- rbind(pa_match,match_score)
     }
   } else if (length(l)>=900){
-    registerDoParallel(1) #_@_@
-    pa_match <- foreach(pa_c=1:length(l), .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch','doParallel'))%dopar%{  #_@_@
+    # registerDoParallel(4) #_@_@
+    pa_match <- foreach(pa_c=1:length(l), .combine = foreach_rbind, .packages=c('sp','magrittr', 'dplyr','tidyr','optmatch'))%do%{  #_@_@
       # cat("Matching treatment chunk", pa_c, "out of", length(l), "for PA", id_pa,"\n")
       cat("chunk",pa_c,"out of ",length(l), "chunks of PA", id_pa,"\n")
       # cat("head control",head(ids_all0),"\n")
@@ -274,7 +276,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
             set.seed(125)
             sample_ids_bar <- sample(ids_all, n_sample)
             sample_ids <- sample(ids_all0, n_sample)
-            d_control_sample <- d_control_all[d_control_all$UID %in% sample_ids,]
+            d_control_sample <- d_control_all[d_control_all[['UID']] %in% sample_ids,]
             ids_all <-setdiff(ids_all, sample_ids)    #ids_all[-sample_ids]
             # cat("protected uid", head(d_wocat_chunk$UID),"\n")
             # All approaches
@@ -296,7 +298,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
               matched_control <- m_all2$df %>% dplyr::filter(status==FALSE)
               cat("matched_protected", nrow(matched_protected),"\n")
               n_matches <- n_matches + nrow(matched_protected)
-              d_wocat_chunk <- d_wocat_chunk[-(match(matched_protected$UID,d_wocat_chunk$UID)),]
+              d_wocat_chunk <- d_wocat_chunk[-(match(matched_protected$UID,d_wocat_chunk[['UID']])),]
               # d_control_all <- d_control_all[-(match(matched_control$UID,d_control$UID)),]
               # 
             } 
@@ -313,7 +315,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
       # cat(table(match_score$status),"\n")
       return(match_score)
     }
-    stopImplicitCluster() #_@_@
+    # stopImplicitCluster() #_@_@
   } else{
     pa_match <- NULL
   }
@@ -327,7 +329,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
   return(NULL)
 }
 
-tElapsed <- Sys.time()-startTime
-# # cat(tElapsed, "for matching all PAs in", iso3,"\n")
-stopImplicitCluster() #_@_@
+# tElapsed <- Sys.time()-startTime
+# cat(tElapsed, "for matching all PAs in", iso3,"\n")
+# stopImplicitCluster() #_@_@
 cat("Done matching for",iso3,". Finishing...\n")
