@@ -266,7 +266,7 @@ for (this_rds in matched_PAs) {
         
         
     selected_columns <- c("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", "gladLand2020",
-                      "UID","fhd_normal","pai","landsat_treecover","rh20","rh70", "rh10", "rh60",  
+                      "UID","fhd_normal","pai","landsat_treecover","rh20","rh70", "rh10", "rh60","rh100",  
                           "rh90", "rh50", "rh40", "rh98","rh80","rh30","rh25","rh75")
     # Process and select columns
     iso_matched_gedi <- iso_matched_gedi %>%
