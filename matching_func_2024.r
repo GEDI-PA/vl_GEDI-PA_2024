@@ -622,11 +622,11 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     ### Make this it's own function
     # Read GEDI L4A data
     gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/",iso3,"/", all_gedil4_f[tile], sep = "")
-    gedil4_f <- st_read(gedil4_f_path, int64_as_string = TRUE)
+    gedil4_f <- st_read(gedil4_f_path, int64_as_string = TRUE,drivers="GPKG")
     
     # Read GEDI L2A data
     gedil2_f_path <- paste(gedipath, "WDPA_gedi_L2A_tiles/",iso3,"/", all_gedil2_f[tile], sep = "")
-    gedil2_f <- st_read(gedil2_f_path, int64_as_string = TRUE)
+    gedil2_f <- st_read(gedil2_f_path, int64_as_string = TRUE,drivers="GPKG")
     
     # Check if GEDI L4A data is empty
     if (nrow(gedil4_f) < 1) {
@@ -650,7 +650,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     ###TODO: Make this it's own function
     # Read GEDI L2B data
     gedil2b_f_path <- paste(gedipath, "WDPA_gedi_L2B_tiles/",iso3,"/", all_gedil2b_f[tile], sep = "")
-    gedil2b_f <- st_read(gedil2b_f_path, int64_as_string = TRUE)
+    gedil2b_f <- st_read(gedil2b_f_path, int64_as_string = TRUE,drivers="GPKG")
     names(gedil2b_f)[names(gedil2b_f) == "geolocation.lon_lowestmode"] <- "lon_lowestmode"
     names(gedil2b_f)[names(gedil2b_f) == "geolocation.lat_lowestmode"] <- "lat_lowestmode"
     names(gedil2b_f)[names(gedil2b_f) == "land_cover_data.landsat_treecover"] <- "landsat_treecover"
