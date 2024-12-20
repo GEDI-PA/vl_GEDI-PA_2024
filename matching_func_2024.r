@@ -618,7 +618,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
       print("File already exists",sep="")
       } else {
    cat("Reading in no. ", tile, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
-    
+
     ### Make this it's own function
     # Read GEDI L4A data
     gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/",iso3,"/", all_gedil4_f[tile], sep = "")
@@ -699,22 +699,79 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     return(filepath)
 }       
 
-extract_gediPart2 <- function(matched,mras,extracted,glad_rast){
+extract_gediPart2 <- function(matched,mras,extracted,catalog_url){
     iso_matched_gedi_df <- NULL
     results_list <- list()
     # Initialize empty spatial object for the current iteration
     for (this_csvid in seq_along(extracted)) {
+        spatial_data <- vect(extracted[this_csvid])
 
-          spatial_data <- vect(extracted[this_csvid])
+        extent <- sf::st_bbox(spatial_data)
 
-          extent <- terra::ext(spatial_data)
-          selection <- terra::crop(glad_rast, extent)
-          matched_glad <- terra::extract(glad_rast,spatial_data, df=TRUE)
+        stac_to_terra <- function(catalog_url, ...) {
+            # fetch STAC items
+            stac <- rstac::stac(catalog_url)
+            stac_items <- stac |>
+              rstac::stac_search(
+                ...
+              ) |>
+              rstac::get_request()
+            
+            # replace s3:// prefixes with /vsis3
+            stac_items$features <- purrr::map(
+                stac_items$features,
+                ~ {
+                    .x$assets <- purrr::map(
+                        .x$assets,
+                        ~{
+                            .x$href <- gsub("s3://", "/vsis3/", .x$href)
+                            .x
+                        }
+                    )
+                .x
+                }
+            )
+        
+            item_collection_json_file <- tempfile(fileext=".json")
+            item_collection_json <- jsonlite::toJSON(stac_items, auto_unbox=TRUE, pretty=TRUE, digits=10)
+            print(item_collection_json)
+        
+            print(paste("writing item collection to", item_collection_json_file))
+            write(item_collection_json, item_collection_json_file)
+            
+            item_collection_dsn <- glue::glue(
+                "STACIT:\"{item_collection_json}\":asset=data",
+                item_collection_json=item_collection_json_file
+            )
+                
+            terra::rast(item_collection_dsn)
+            }
+
+        # load the rasters
+            glad_change_rast <- stac_to_terra(
+                catalog_url = catalog_url,
+                bbox = extent,
+                collections = "glad-glclu2020-change-v2",
+                datetime = "2020-01-01T00:00:00Z",
+            )
+            
+            glad_rast_2020 <- stac_to_terra(
+                catalog_url = catalog_url,
+                bbox = extent,
+                collections = "glad-glclu2020-v2",
+                datetime = "2020-01-01T00:00:00Z",
+            )
+        
+          # extent <- terra::ext(spatial_data)
+          # selection <- terra::crop(glad_rast_change, extent)
+         spatial_data$glad_change <- terra::extract(glad_change_rast,spatial_data, df=TRUE)[[2]]
+         spatial_data$glad_2020 <- terra::extract(glad_rast_2020,spatial_data, df=TRUE)[[2]]
 
           gedi_l24b_sp <- project(spatial_data, "epsg:6933")
           matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
           matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
-          matched_gedi_metrics <- inner_join(matched_gedi_metrics, matched_glad, by = "ID")
+          # matched_gedi_metrics <- inner_join(matched_gedi_metrics, spatial_data, by = "ID")
+          # matched_gedi_metrics <- inner_join(matched_gedi_metrics, matched_glad, by = "ID")
           print(head(matched_gedi_metrics))
           matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
           convertFactor(matched0 = matched,exgedi = .) 
