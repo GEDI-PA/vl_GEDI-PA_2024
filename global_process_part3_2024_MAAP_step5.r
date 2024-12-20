@@ -1,5 +1,5 @@
 #When running Rscript, install these packages first
-#conda install -c conda-forge r-paws r-terra r-optmatch r-sp r-sf r-rgeos r-dplyr r-plyr r-ggplot2 r-mapview r-stringr r-maptools r-gridExtra r-lattice r-MASS r-foreach r-doParallel r-rlang r-tidyr r-magrittr r-aws.s3 r-rgeos r-rlemon r-svd r-sparsem r-survival r-RItools
+#conda install -c conda-forge r-paws r-terra r-optmatch r-sf r-dplyr r-plyr r-ggplot2 r-mapview r-stringr r-maptools r-gridExtra r-lattice r-MASS r-foreach r-doParallel r-rlang r-tidyr r-magrittr r-aws.s3 r-rgeos r-rlemon r-svd r-sparsem r-survival r-RItools
 
 gediwk <- 24
 mproc <- 2
@@ -32,7 +32,7 @@ install.packages(cran_packages, dependencies = TRUE)
 options(warn=-1)
 options(dplyr.summarise.inform = FALSE)
 
-packages <- c("sp","sf","rgeos","dplyr","plyr","ggplot2","mapview","stringr","terra",
+packages <- c("sf","dplyr","plyr","ggplot2","mapview","stringr","terra",
               "foreach","optmatch","doParallel","RItools",
               "rlang","tidyr","magrittr","aws.s3","s3")
 
@@ -82,9 +82,9 @@ adm_prj <- project(vect(adm), "epsg:6933")
 
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 
-#GLAD Landcover Raster 
-terra::setGDALconfig("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
-terra::setGDALconfig("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", "TIF")
+# #GLAD Landcover Raster 
+# terra::setGDALconfig("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+# terra::setGDALconfig("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", "TIF")
 
 # MAAP STAC API URL
 catalog_url <- "https://stac.maap-project.org"
@@ -129,7 +129,7 @@ cat(paste("Step 5: Performing WK ",gediwk,"GEDI extraction for", iso3,"\n"))
 # matched_all
 
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/",iso3,"_wk24/",sep=""))
+Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/",iso3,"/",iso3,"_wk24/",sep=""))
   matched_all <- sapply(results$Contents, function(x) {x$Key})
   pattern=paste(".RDS")
   matched_all <-grep(pattern, matched_all, value=TRUE)
