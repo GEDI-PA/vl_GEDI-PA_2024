@@ -32,7 +32,7 @@ install.packages(cran_packages, dependencies = TRUE)
 options(warn=-1)
 options(dplyr.summarise.inform = FALSE)
 
-packages <- c("sf","dplyr","plyr","ggplot2","mapview","stringr","terra",
+packages <- c("sf","rstac","dplyr","plyr","ggplot2","mapview","stringr","terra",
               "foreach","optmatch","doParallel","RItools",
               "rlang","tidyr","magrittr","aws.s3","s3")
 
