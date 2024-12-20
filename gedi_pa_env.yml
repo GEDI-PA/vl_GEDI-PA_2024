@@ -54,6 +54,7 @@ dependencies:
   - r-modelr
   - r-ranger
   - r-caret
+  - r-rstac
   
   
   
