@@ -699,16 +699,8 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     return(filepath)
 }       
 
-extract_gediPart2 <- function(matched,mras,extracted,catalog_url){
-    iso_matched_gedi_df <- NULL
-    results_list <- list()
-    # Initialize empty spatial object for the current iteration
-    for (this_csvid in seq_along(extracted)) {
-        spatial_data <- vect(extracted[this_csvid])
-
-        extent <- sf::st_bbox(spatial_data)
-
-        stac_to_terra <- function(catalog_url, ...) {
+#Function to access STAC, this is used in the extract_gediPart2 function                                              
+stac_to_terra <- function(catalog_url, ...) {
             # fetch STAC items
             stac <- rstac::stac(catalog_url)
             stac_items <- stac |>
@@ -746,6 +738,15 @@ extract_gediPart2 <- function(matched,mras,extracted,catalog_url){
                 
             terra::rast(item_collection_dsn)
             }
+                                               
+extract_gediPart2 <- function(matched,mras,extracted,catalog_url){
+    iso_matched_gedi_df <- NULL
+    results_list <- list()
+    # Initialize empty spatial object for the current iteration
+    for (this_csvid in seq_along(extracted)) {
+        spatial_data <- vect(extracted[this_csvid])
+
+        extent <- sf::st_bbox(spatial_data)
 
         # load the rasters
             glad_change_rast <- stac_to_terra(
