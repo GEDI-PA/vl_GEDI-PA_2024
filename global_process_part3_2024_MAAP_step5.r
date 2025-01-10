@@ -89,9 +89,24 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 # MAAP STAC API URL
 catalog_url <- "https://stac.maap-project.org"
 
-# glad_2020 <- "/vsicurl/https://s3.openlandmap.org/arco/lc_glad.glcluc_c_30m_s_20200101_20201231_go_epsg.4326_v20230901.tif"
-# glad_rast <- rast(glad_2020, vsi=TRUE)
-# names(glad_rast) <- "gladLand2020"
+vect_adm <- vect(adm)
+
+extent <- sf::st_bbox(vect_adm)
+
+#Call GLAD rasters from STAC once per folder
+  glad_change_rast <- stac_to_terra(
+  catalog_url = catalog_url,
+  bbox = extent,
+  collections = "glad-glclu2020-change-v2",
+  datetime = "2020-01-01T00:00:00Z",
+         )
+         
+  glad_rast_2020 <- stac_to_terra(
+   catalog_url = catalog_url,
+   bbox = extent,
+   collections = "glad-glclu2020-v2",
+   datetime = "2020-01-01T00:00:00Z",
+            )
 
 #End GLAD Codes
 
@@ -240,7 +255,7 @@ for (this_rds in matched_PAs) {
     # Extract GEDI data with error handling
     extracted<-list.files(f.path3, pattern=".gpkg", full.names = TRUE)
     iso_matched_gedi <- tryCatch({
-        extract_gediPart2(matched = matched, mras = mras,extracted = extracted, catalog_url=catalog_url)
+        extract_gediPart2(matched = matched, mras = mras,extracted = extracted, catalog_url=catalog_url,glad_change_rast=glad_change_rast,glad_rast_2020=glad_rast_2020)
     }, error = function(e) {
         cat("Error extracting GEDI data for PA", id_pa, ":", e$message, "\n")
         return(NULL)
