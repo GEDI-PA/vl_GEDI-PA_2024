@@ -6,7 +6,7 @@ outdir=${PWD}/output
 
 country=${1}
 
-range=${3}
+range=${2}
 
 
 #Rscript ${basedir}/global_process_part1_2024_MAAP_step123.R $country $outdir
