@@ -12,6 +12,7 @@ if (length(args)==0) {
   
   iso3 <- args[1]  #country to process
   out <- args[2]
+  range <- args[3]
 #  flag <- args[2]  #"run all" PAs or "run remaining" only
   #gediwk <- args[2]   #the # of weeks GEDI data to use
   #mproc <- as.integer(args[3])  #the number of cores to use for matching
@@ -148,7 +149,12 @@ Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/",iso3,"/",i
   matched_all <- sapply(results$Contents, function(x) {x$Key})
   pattern=paste(".RDS")
   matched_all <-grep(pattern, matched_all, value=TRUE)
-matched_all
+
+#Adding limits for runs to only run specified number of PAs
+new<- unlist(regmatches(range, gregexpr("[[:digit:]]+", range)))
+start<-new[1]
+stop<- new[2]
+matched_all<-matched_all[start:stop]
 
 matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %do% {   #non-NA matched results
   matched_PAs=c()
