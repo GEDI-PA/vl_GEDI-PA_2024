@@ -41,12 +41,14 @@ cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 
 #f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
 f.path3<- file.path(out)
 
-matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
+glad <- paste0(iso3,"_GLADCover_reclass2000")
+matching_tifs <- c("d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
-                   "wc_tmax_1990-1999","wc_tavg_1990-1999","wc_tmin_1990-1999" )
+                   "wc_tmax_1990-1999-Copy1","wc_tavg_1990-1999","wc_tmin_1990-1999", glad)
 
 ecoreg_key <- read.csv(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
 #unlink(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
@@ -171,7 +173,7 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
     
     
   for (j in 1:length(matching_tifs)){
-    ras <- rast(s3_get(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
+    ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
     print(matching_tifs[j])
     ras_ex <- extract(ras, nonPA_spdf, method="simple", factors=FALSE)
     nm <- names(ras)
@@ -186,37 +188,24 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
   names(d_control) <- make.names(names(d_control), allow_ = FALSE)
   d_control <- data.frame(d_control) %>%
     dplyr::rename(
-      land_cover = lc2000,
+      land_cover = GNB.GLADCover.reclass2000,
       slope = slope,
       elevation = dem,
       popden = pop.den.2000,
       popcnt=pop.cnt.2000,
       min_temp=wc.tmin.1990.1999,
-      max_temp=wc.tmax.1990.1999,
+      max_temp=wc.tmax.1990.1999.Copy1,
       mean_temp = wc.tavg.1990.1999,
       prec = wc.prec.1990.1999,
       tt2city= tt2cities.2000,
-      wwfbiom = wwf.biomes,
-      wwfecoreg = wwf.ecoreg,
       d2city = dcities,
       d2road = d2roads,
       lon = x,
       lat = y)
-  d_control$land_cover <- factor(d_control$land_cover, levels=sequence(7),
-                                 labels = c("l1_forest",
-                                            "l2_grassland",
-                                            "l3_agriculture",
-                                            "l4_wetlands",
-                                            "l5_artificial",
-                                            "l6_other land/bare",
-                                            "l7_water"))
-  d_control$wwfbiom <- factor(d_control$wwfbiom,
-                           levels = as.vector(unique(ecoreg_key[,"BIOME"])),
-                           labels = as.vector(unique(ecoreg_key[,"BIOME_NAME"])))
-  d_control$wwfecoreg <- factor(d_control$wwfecoreg,
-                             levels = as.vector(ecoreg_key[,"ECO_ID"]),
-                             labels = as.vector(ecoreg_key[,"ECO_NAME"]))
-  
+  d_control$land_cover <- factor(d_control$land_cover, levels=sequence(13),
+                                 labels = c("desert","semi_arid","dense_short","tree_short","tree_med","tree_tall",
+                                           "salt pan", "sparse_veg_wetland","dense_short_wetland", "tree_short_wetland",
+                                           "tree_med_wetland","tree_tall_wetland","water"))  
   
   d_control$UID <-  seq.int(nrow(d_control))
   
@@ -253,7 +242,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       testPA_spdf  <- vect(testPA_xy, crs="epsg:4326")
                               
         for (j in 1:length(matching_tifs)){
-        ras <- rast(s3_get(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
+        ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
         ras <- crop(ras, testPA)
         ras_ex <- extract(ras, testPA_spdf, method="simple", factors=F)
         nm <- names(ras)
@@ -275,36 +264,25 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       names(d_pa) <- make.names(names(d_pa), allow_ = FALSE)
       d_pa <- data.frame(d_pa) %>%
         dplyr::rename(
-          land_cover = lc2000,
-          slope = slope,
-          elevation = dem,
-          popden = pop.den.2000,
-          popcnt=pop.cnt.2000,
-          min_temp=wc.tmin.1990.1999,
-          max_temp=wc.tmax.1990.1999,
-          mean_temp = wc.tavg.1990.1999,
-          prec = wc.prec.1990.1999,
-          tt2city= tt2cities.2000,
-          wwfbiom = wwf.biomes,
-          wwfecoreg = wwf.ecoreg,
-          d2city = dcities,
-          d2road = d2roads,
-          lon = x,
-          lat = y)
-      d_pa$land_cover <- factor(d_pa$land_cover, levels=sequence(7),
-                                labels = c("l1_forest",
-                                           "l2_grassland",
-                                           "l3_agriculture",
-                                           "l4_wetlands",
-                                           "l5_artificial",
-                                           "l6_other land/bare",
-                                           "l7_water"))
-      d_pa$wwfbiom <- factor(d_pa$wwfbiom,
-                          levels = as.vector(unique(ecoreg_key[,"BIOME"])),
-                          labels = as.vector(unique(ecoreg_key[,"BIOME_NAME"])))
-      d_pa$wwfecoreg <- factor(d_pa$wwfecoreg,
-                            levels = as.vector(ecoreg_key[,"ECO_ID"]),
-                            labels = as.vector(ecoreg_key[,"ECO_NAME"]))
+              land_cover = GNB.GLADCover.reclass2000,
+              slope = slope,
+              elevation = dem,
+              popden = pop.den.2000,
+              popcnt=pop.cnt.2000,
+              min_temp=wc.tmin.1990.1999,
+              max_temp=wc.tmax.1990.1999.Copy1,
+              mean_temp = wc.tavg.1990.1999,
+              prec = wc.prec.1990.1999,
+              tt2city= tt2cities.2000,
+              d2city = dcities,
+              d2road = d2roads,
+              lon = x,
+              lat = y)
+
+      d_control$land_cover <- factor(d_control$land_cover, levels=sequence(13),
+                                 labels = c("desert","semi_arid","dense_short","tree_short","tree_med","tree_tall",
+                                           "salt pan", "sparse_veg_wetland","dense_short_wetland", "tree_short_wetland",
+                                           "tree_med_wetland","tree_tall_wetland","water"))  
       
       d_pa$UID <- seq.int(nrow(d_pa))
 
