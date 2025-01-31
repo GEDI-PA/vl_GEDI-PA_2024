@@ -46,6 +46,7 @@ gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Ma
 f.path3<- file.path(out)
 
 glad <- paste0(iso3,"_GLADCover_reclass2000")
+gladEntry <- paste0(iso3,".GLADCover.reclass2000")
 matching_tifs <- c("d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
                    "wc_tmax_1990-1999-Copy1","wc_tavg_1990-1999","wc_tmin_1990-1999", glad)
@@ -188,7 +189,7 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
   names(d_control) <- make.names(names(d_control), allow_ = FALSE)
   d_control <- data.frame(d_control) %>%
     dplyr::rename(
-      land_cover = GNB.GLADCover.reclass2000,
+      land_cover = gladEntry,
       slope = slope,
       elevation = dem,
       popden = pop.den.2000,
@@ -264,7 +265,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       names(d_pa) <- make.names(names(d_pa), allow_ = FALSE)
       d_pa <- data.frame(d_pa) %>%
         dplyr::rename(
-              land_cover = GNB.GLADCover.reclass2000,
+              land_cover = gladEntry,
               slope = slope,
               elevation = dem,
               popden = pop.den.2000,
