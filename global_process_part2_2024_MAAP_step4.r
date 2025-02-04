@@ -47,13 +47,6 @@ f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/Matchin
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
 f.path3<- file.path(out)
 
-matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
-                   "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
-                   "wc_tmax_1990-1999","wc_tavg_1990-1999","wc_tmin_1990-1999" )
-
-ecoreg_key <- read.csv(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
-#unlink(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
-
 allPAs <- readRDS(s3_get(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep="")))
 
 MCD12Q1 <- rast(s3_get(paste(f.path,"GEDI_ANCI_PFT_r1000m_EASE2.0_UMD_v1_projection_defined_6933.tif",sep="")))
