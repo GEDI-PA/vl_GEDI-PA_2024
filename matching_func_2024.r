@@ -56,15 +56,11 @@ match_wocat <- function(df, pid) {
                     # Filter out climates and land covers that don't appear in the wocat
                     # sample, and drop these levels from the factors
                     this_d <- filter(this_d, #***** AFTER SCORING EXPORT AS CSV
-                                     land_cover %in% unique(d_wocat$land_cover),
-                                     wwfbiom %in% unique(d_wocat$wwfbiom),
-                                     wwfecoreg %in% unique(d_wocat$wwfecoreg))
+                                     land_cover %in% unique(d_wocat$land_cover))
                     
                     this_d$land_cover <- droplevels(this_d$land_cover)
-                    this_d$wwfbiom <- droplevels(this_d$wwfbiom)
-                    this_d$wwfecoreg <- droplevels(this_d$wwfecoreg)
                     # table(this_d$status)
-                   dat <- dplyr::select(this_d, lat, lon, UID, status, land_cover, wwfbiom, wwfecoreg, elevation, slope,
+                   dat <- dplyr::select(this_d, lat, lon, UID, status, land_cover, elevation, slope,
                          mean_temp,max_temp,min_temp, prec, d2road, d2city,  popden, tt2city, popcnt) 
                     ps_A <- glm(status ~ mean_temp+max_temp+min_temp + prec + elevation + slope+ d2road + d2city + popden +popcnt+ tt2city,data = dat)
                     dat$propensity_scoreA <- fitted(ps_A)
@@ -75,16 +71,6 @@ match_wocat <- function(df, pid) {
                       f <- update(f, ~ . + strata(land_cover))
                     } else {
                       f <- update(f, ~ . - land_cover)
-                    }
-                    if (nlevels(this_d$wwfbiom) >= 2) {
-                      f <- update(f, ~ . + strata(wwfbiom))
-                    } else {
-                      f <- update(f, ~ . - wwfbiom)
-                    }
-                    if (nlevels(this_d$wwfecoreg) >= 2) {
-                      f <- update(f, ~ . + strata(wwfecoreg))
-                    } else {
-                      f <- update(f, ~ . - wwfecoreg)
                     }
                     if (nrow(d_wocat) > 2) {
                       model <- glm(f, data=this_d)
@@ -114,22 +100,18 @@ match_wocat <- function(df, pid) {
                       this_d<-df
                       d_wocat <- filter(this_d, status)
                       this_d <- filter(this_d,
-                                       land_cover %in% unique(d_wocat$land_cover),
-                                       wwfbiom %in% unique(d_wocat$wwfbiom))
+                                       land_cover %in% unique(d_wocat$land_cover))
+                                       
                       
                       this_d$land_cover <- droplevels(this_d$land_cover)
-                      this_d$wwfbiom <- droplevels(this_d$wwfbiom)
+                      
                       f <- status ~ mean_temp + max_temp + min_temp + prec + elevation + slope + d2road + d2city + popden + popcnt + tt2city
                       if (nlevels(this_d$land_cover) >= 2) {
                         f <- update(f, ~ . + strata(land_cover))
                       } else {
                         f <- update(f, ~ . - land_cover)
                       }
-                      if (nlevels(this_d$wwfbiom) >= 2) {
-                        f <- update(f, ~ . + strata(wwfbiom))
-                      } else {
-                        f <- update(f, ~ . - wwfbiom)
-                      }
+                      
                       if (nrow(d_wocat) > 2) {
                         model <- glm(f, data=this_d)
                         dists <- match_on(model, data=this_d)
@@ -146,29 +128,7 @@ match_wocat <- function(df, pid) {
                       } else {
                         this_d <- data.frame()
                       }
-                      if(nrow(this_d)==0){
-                        log_mes <- paste(pid,"-Matching without wwfecoreg:Failed\n",sep="")
-                        filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
-                        dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
-                        cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
-                        return(NULL)
-                      } else{
-                        log_mes <- paste(pid,"-Matching without wwfecoreg:Succeed\n",sep="")
-                        filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
-                        dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
-                        cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
-                        match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
-                        return(match_results)
-                      }
-                    } else {
-                      log_mes <- paste(pid,"-Matching with wwfecoreg:Succeed\n",sep="")
-                      match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
-                      filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
-                      dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
-                      cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
-                      return(match_results)
-                    }
-                  }
+                  }}
   
   stopImplicitCluster()  #_@_@
   return(ret)
@@ -179,7 +139,7 @@ propensity_filter <- function(pa_df, d_control_local){
   d <- dplyr::bind_rows(d_control_local, pa_df)
   ## bring in matching algorithm from STEP5 here to loop through each PA in d_PAs
   #filter controls based on propensity scores 
-  d_all <- dplyr::select(d, lat, lon, UID, status, land_cover, wwfbiom, wwfecoreg, elevation, slope,
+  d_all <- dplyr::select(d, lat, lon, UID, status, land_cover, elevation, slope,
                          mean_temp,max_temp,min_temp, prec, d2road, d2city,  popden, tt2city, popcnt) 
   #**** HOMEWORK ABOVE Add ps model object and propensity score to above og dataframe, add to wocat function
   d_all$status <- ifelse(d_all$status==TRUE,1,0)
@@ -255,12 +215,12 @@ matched2ras <- function(matched_df) {
   matched_pts$UID <- as.integer(matched_pts$UID)
   matched_pts$pa_id <- as.integer(matched_pts$pa_id)
   matched_pts$status <- as.logical(matched_pts$status)
-  matched_pts$wwfbiom <- as.numeric(matched_pts$wwfbiom)
-  matched_pts$wwfecoreg <- as.numeric(matched_pts$wwfecoreg)
+  # matched_pts$wwfbiom <- as.numeric(matched_pts$wwfbiom)
+  # matched_pts$wwfecoreg <- as.numeric(matched_pts$wwfecoreg)
   
-  # Fill NA values with 0
-  matched_pts$wwfbiom[is.na(matched_pts$wwfbiom)] <- 0
-  matched_pts$wwfecoreg[is.na(matched_pts$wwfecoreg)] <- 0
+  # # Fill NA values with 0
+  # matched_pts$wwfbiom[is.na(matched_pts$wwfbiom)] <- 0
+  # matched_pts$wwfecoreg[is.na(matched_pts$wwfecoreg)] <- 0
   
   # Define the raster extent for cropping
   buffer_ext <- ext(buffer(matched_pts, 10000))
@@ -272,7 +232,7 @@ matched2ras <- function(matched_df) {
   names(continent) <- "region"
   
   # List of fields to rasterize
-  fields <- c("status", "pa_id", "wwfbiom", "wwfecoreg", "UID")
+  fields <- c("status", "pa_id", "UID")
   rasters <- list()
   
   # Rasterize each field
@@ -323,13 +283,13 @@ convertFactor <- function(matched0, exgedi){
   #   factor(levels=seq(length(levels(matched0$DESIG_ENG))),
   #          labels=levels(matched0$DESIG_ENG))  
   
-  exgedi$wwfbiom <- exgedi$wwfbiom %>% 
-    factor(levels=seq(length(levels(matched0$wwfbiom))),
-           labels=levels(matched0$wwfbiom))  
+  # exgedi$wwfbiom <- exgedi$wwfbiom %>% 
+  #   factor(levels=seq(length(levels(matched0$wwfbiom))),
+  #          labels=levels(matched0$wwfbiom))  
   
-  exgedi$wwfecoreg <- exgedi$wwfecoreg %>% 
-    factor(levels=seq(length(levels(matched0$wwfecoreg))),
-           labels=levels(matched0$wwfecoreg))  
+  # exgedi$wwfecoreg <- exgedi$wwfecoreg %>% 
+  #   factor(levels=seq(length(levels(matched0$wwfecoreg))),
+  #          labels=levels(matched0$wwfecoreg))  
   
   # tryCatch(exgedi$paddd <- as.character(exgedi$paddd), error=function(e) return(NULL))
   # tryCatch(exgedi$paddd[which(exgedi$paddd=="1")] <- "Downgrade", error=function(e) return(NULL))
@@ -363,12 +323,12 @@ subdfExport <- function(filtered_df){
       } else if (ntreat==0 || ncontrol==0){
         spt2_new=NA
       }
-      biom <- spt2_new$wwfbiom %>% unique() %>% as.character() %>% gsub('\\b(\\pL)\\pL{4,}|.','\\U\\1',.,perl = TRUE)
-      if(length(biom)>1){
-        biom <- paste(c(biom), collapse="&")
-      }
-      # print(biom)
-      write.csv(spt2_new, file=paste(f.path3,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_PA_",unique(spt2_new$pa_id),"_",biom,".csv", sep=""))
+      # biom <- spt2_new$wwfbiom %>% unique() %>% as.character() %>% gsub('\\b(\\pL)\\pL{4,}|.','\\U\\1',.,perl = TRUE)
+      # if(length(biom)>1){
+      #   biom <- paste(c(biom), collapse="&")
+      # }
+      # # print(biom)
+      # write.csv(spt2_new, file=paste(f.path3,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_PA_",unique(spt2_new$pa_id),"_",biom,".csv", sep=""))
       return(spt2_new)
     }
   })
@@ -815,7 +775,7 @@ SplitRas <- function(raster,ppside){
 rasExtract2020 <- function(l4_sp){
   # cat(iso3,"converting the matched csv to a raster stack for extraction\n")
   tif2020 <- c("pop_cnt_2020","pop_den_2020","lc2019","tt2cities_2015","wc_prec_2010-2018","wc_tavg_2010-2018","wc_tmax_2010-2018",
-               "wc_tmin_2010-2018","wwf_biomes","wwf_ecoreg","dem","slope","d2roads","dcities")
+               "wc_tmin_2010-2018","dem","slope","d2roads","dcities",glad)
   for (t in 1:length(tif2020)){
     # print(tif2020[t])
     covar2020 <- raster(paste(f.path, "WDPA_input_vars_iso3_v2/",iso3,"/",tif2020[t],".tif", sep=""))
