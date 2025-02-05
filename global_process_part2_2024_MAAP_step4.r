@@ -1,13 +1,13 @@
-# Set CRAN mirror
-options(repos = c(CRAN = "https://cran.r-project.org"))
+# # Set CRAN mirror
+# options(repos = c(CRAN = "https://cran.r-project.org"))
 
-# List of CRAN packages to be installed
-cran_packages <- c(
-  "s3"
-)
+# # List of CRAN packages to be installed
+# cran_packages <- c(
+#   "s3"
+# )
 
-# Install CRAN packages
-install.packages(cran_packages, dependencies = TRUE)
+# # Install CRAN packages
+# install.packages(cran_packages, dependencies = TRUE)
 
 library("terra")
 library("dplyr")
@@ -35,7 +35,7 @@ if (length(args)==0) {
   iso3 <- args[1]  #country to process
   out <- args[2]
   #gediwk <- args[2]   #the # of weeks GEDI data to use
-  mproc <- as.integer(args[3])  #the number of cores to use for matching
+  # mproc <- as.integer(args[3])  #the number of cores to use for matching
 }
 #-------------------------------------------------------------------------------
 
@@ -100,8 +100,8 @@ if(!dir.exists(paste(f.path3,"/",iso3,"_wk",gediwk,"/",sep=""))){
     
   matched_all <- list.files(paste(f.path3,"/",iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = FALSE)
   
-  registerDoParallel(3) #_@_@
-  matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %dopar% { #_@_@ #non-NA matched results
+  # registerDoParallel(3) #_@_@
+  matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %do% { #_@_@ #non-NA matched results
     matched_PAs=c()
     # print(this_rds)
     if(nchar(iso3)>3){
@@ -121,7 +121,7 @@ if(!dir.exists(paste(f.path3,"/",iso3,"_wk",gediwk,"/",sep=""))){
     }
     return(matched_PAs)
   }
-  stopImplicitCluster() #_@_
+  # stopImplicitCluster() #_@_
   
   if(!is.null(matched_PAs)){
     fullmatch_ids <- matched_PAs %>%readr::parse_number() %>% unique()
@@ -150,9 +150,9 @@ if(!dir.exists(paste(f.path3,"/",iso3,"_wk",gediwk,"/",sep=""))){
 }
 
 
-registerDoParallel(1) #_@_@
+# registerDoParallel(1) #_@_@
 # cat("Parallel processing",getDoParWorkers(),"PAs \n")
-startTime <- Sys.time()
+# startTime <- Sys.time()
 
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                               Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/Matching_Results","/",iso3,"/",iso3,"_testPAs/",sep=""))
