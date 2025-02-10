@@ -280,7 +280,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
               lon = x,
               lat = y)
 
-      d_control$land_cover <- factor(d_control$land_cover, levels=sequence(13),
+      d_pa$land_cover <- factor(d_pa$land_cover, levels=sequence(13),
                                  labels = c("desert","semi_arid","dense_short","tree_short","tree_med","tree_tall",
                                            "salt pan", "sparse_veg_wetland","dense_short_wetland", "tree_short_wetland",
                                            "tree_med_wetland","tree_tall_wetland","water"))  
