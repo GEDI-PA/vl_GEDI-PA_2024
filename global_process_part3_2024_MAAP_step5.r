@@ -12,7 +12,7 @@ if (length(args)==0) {
   
   iso3 <- args[1]  #country to process
   out <- args[2]
-  range <- args[3]
+  # range <- args[3]
 #  flag <- args[2]  #"run all" PAs or "run remaining" only
   #gediwk <- args[2]   #the # of weeks GEDI data to use
   #mproc <- as.integer(args[3])  #the number of cores to use for matching
@@ -22,7 +22,7 @@ if (length(args)==0) {
 
 # options(repos = c(CRAN = "https://cloud.r-project.org"))
 
-# # List of CRAN packages to be installed
+# # # List of CRAN packages to be installed
 # cran_packages <- c(
 #   "s3","optmatch", "RItools"
 # )
@@ -60,13 +60,6 @@ source("matching_func_2024.r")
 
 cat("Step 0: Loading global variables to process country", iso3,"with GEDI data until week", gediwk, "\n")
 
-matching_tifs <- c("wwf_biomes","wwf_ecoreg","lc2000","d2roads", "dcities","dem",
-                   "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
-                   "wc_tmax_1990-1999","wc_tavg_1990-1999","wc_tmin_1990-1999" )
-
-ecoreg_key <- read.csv(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
-#unlink(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
-
 allPAs <- readRDS(s3_get(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep="")))
 
 MCD12Q1 <- rast(s3_get(paste(f.path,"GEDI_ANCI_PFT_r1000m_EASE2.0_UMD_v1_projection_defined_6933.tif",sep="")))
@@ -95,19 +88,59 @@ vect_adm <- vect(adm)
 extent <- sf::st_bbox(vect_adm)
 
 #Call GLAD rasters from STAC once per folder
-  glad_change_rast <- stac_to_terra(
+  glad_change <- stac_to_terra(
   catalog_url = catalog_url,
   bbox = extent,
   collections = "glad-glclu2020-change-v2",
   datetime = "2020-01-01T00:00:00Z",
          )
          
-  glad_rast_2020 <- stac_to_terra(
+  glad_2020 <- stac_to_terra(
    catalog_url = catalog_url,
    bbox = extent,
    collections = "glad-glclu2020-v2",
    datetime = "2020-01-01T00:00:00Z",
             )
+reclass_matrix <- matrix(c(
+   0,  1,  1, 
+   2, 18, 2,
+   19, 24, 3,
+   25, 32, 4,
+   33, 42, 5,
+   43, 48, 6,
+   49,99, 99,
+   100, 101, 7,
+   102, 118, 8,
+   119, 124, 9,
+   125, 132, 10,
+   133, 142, 11,
+   143, 148, 12,
+   149, 199, 99,
+   200, 207, 13,
+   208, 255, 99
+), ncol = 3, byrow = TRUE)
+
+glad_rast_2020 <- classify(glad_2020, reclass_matrix)
+
+reclass_matrix2 <- matrix(c(
+   0,  1,  1, 
+   2, 18, 2,
+   19, 24, 3,
+   25, 48, 4,
+   49, 72, 5,
+   73, 96, 6,
+   97,99, 99,
+   100, 101, 7,
+   102, 118, 8,
+   119, 124, 9,
+   125, 148, 10,
+   149, 172, 11,
+   173, 196, 12,
+   197, 207, 99,
+   212, 239, 99
+), ncol = 3, byrow = TRUE)
+
+glad_change_rast <- classify(glad_change, reclass_matrix2)
 
 #End GLAD Codes
 
@@ -151,10 +184,10 @@ Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/",iso3,"/",i
   matched_all <-grep(pattern, matched_all, value=TRUE)
 
 #Adding limits for runs to only run specified number of PAs
-new<- unlist(regmatches(range, gregexpr("[[:digit:]]+", range)))
-start<-new[1]
-stop<- new[2]
-matched_all<-matched_all[start:stop]
+# new<- unlist(regmatches(range, gregexpr("[[:digit:]]+", range)))
+# start<-new[1]
+# stop<- new[2]
+# matched_all<-matched_all[start:stop]
 
 matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %do% {   #non-NA matched results
   matched_PAs=c()
@@ -261,7 +294,7 @@ for (this_rds in matched_PAs) {
     # Extract GEDI data with error handling
     extracted<-list.files(f.path3, pattern=".gpkg", full.names = TRUE)
     iso_matched_gedi <- tryCatch({
-        extract_gediPart2(matched = matched, mras = mras,extracted = extracted, catalog_url=catalog_url,glad_change_rast=glad_change_rast,glad_rast_2020=glad_rast_2020)
+        extract_gediPart2(matched = matched, mras = mras,extracted = extracted, glad_change_rast=glad_change_rast,glad_rast_2020=glad_rast_2020)
     }, error = function(e) {
         cat("Error extracting GEDI data for PA", id_pa, ":", e$message, "\n")
         return(NULL)
@@ -274,8 +307,8 @@ for (this_rds in matched_PAs) {
     }
     
     # Calculate elapsed time
-    tElapsed <- Sys.time() - startTime
-    cat(tElapsed, "for extracting all PAs in", iso3, "\n")
+    # tElapsed <- Sys.time() - startTime
+    # cat(tElapsed, "for extracting all PAs in", iso3, "\n")
     cat("Done GEDI for PA", match(this_rds, matched_PAs), "out of", length(matched_PAs), "\n")
 
     variables <- c()
@@ -289,27 +322,13 @@ for (this_rds in matched_PAs) {
       }
         
         
-    selected_columns <- c("pa_id", "status", "wwfbiom", "wwfecoreg", "shot_number", "glad_change","glad_2020",
+    selected_columns <- c("pa_id", "status", "shot_number", "glad_change","glad_2020",
                       "UID","fhd_normal","pai","landsat_treecover","rh20","rh70", "rh10", "rh60","rh100",  
                           "rh90", "rh50", "rh40", "rh98","rh80","rh30","rh25","rh75")
     # Process and select columns
     iso_matched_gedi <- iso_matched_gedi %>%
         dplyr::select(c(selected_columns, variables))
-    
-    # Determine biome name
-    if (length(unique(iso_matched_gedi$wwfbiom)) > 1) {
-        pabiome <- iso_matched_gedi$wwfbiom %>%
-            unique() %>%
-            gsub('\\b(\\pL)\\pL{2,}|.', '\\U\\1', ., perl = TRUE) %>%
-            str_c(collapse = "+")
-    } else if (length(unique(iso_matched_gedi$wwfbiom)) == 1) {
-        pabiome <- iso_matched_gedi$wwfbiom %>%
-            unique() %>%
-            gsub('\\b(\\pL)\\pL{2,}|.', '\\U\\1', ., perl = TRUE)
-    } else {
-        pabiome <- iso_matched_gedi$wwfbiom %>% unique()
-    }
-    
+        
     # Determine continent mode
     continent <- unique(iso_matched_gedi$region) %>% getmode()
     
@@ -319,11 +338,11 @@ for (this_rds in matched_PAs) {
     # Create output directory if it does not exist
     dir.create(file.path(f.path3, "WDPA_GEDI_extract"), recursive = TRUE, showWarnings = FALSE)
     
-    # Save results to RDS and CSV files
-    saveRDS(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
-                                           "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
-    write.csv(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
-                                              "_iso_matched_gedi_sub_wk_", gediwk, ".csv", sep = ""))
+    # # Save results to RDS and CSV files
+    # saveRDS(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
+    #                                        "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
+    st_write(iso_matched_gedi, paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
+                                              "_iso_matched_gedi_sub_wk_", gediwk, ".gpkg", sep = ""),append=FALSE)
     
     cat(id_pa, "in", iso3, "results are written to directory\n")
 }
