@@ -704,7 +704,6 @@ stac_to_terra <- function(catalog_url, ...) {
 extract_gediPart2 <- function(matched,# Add notes for what these variables are!
                               mras,
                               extracted,
-                              catalog_url,
                               glad_change_rast,#GLAD Change per country
                               glad_rast_2020){#GLAD Landcover per country
     iso_matched_gedi_df <- NULL
