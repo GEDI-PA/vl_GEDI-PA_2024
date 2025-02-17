@@ -94,8 +94,8 @@ match_wocat <- function(df, pid) {
                     } else {
                       this_d <- data.frame()
                     }
-                    # Need to handle the possibility that there were no matches for this 
-                    # treatment, meaning this_d will be an empty data.frame
+                    # # Need to handle the possibility that there were no matches for this 
+                    # # treatment, meaning this_d will be an empty data.frame
                     if (nrow(this_d) == 0) {   #if matching w/ ecoreg return no results, match again w/o ecoreg and check matching results
                       this_d<-df
                       d_wocat <- filter(this_d, status)
@@ -128,7 +128,29 @@ match_wocat <- function(df, pid) {
                       } else {
                         this_d <- data.frame()
                       }
-                  }}
+                if(nrow(this_d)==0){
+                        log_mes <- paste(pid,"-Matching without land_cover:Failed\n",sep="")
+                        filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
+                        dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
+                        cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                        return(NULL)
+                      } else{
+                        log_mes <- paste(pid,"-Matching without land_cover:Succeed\n",sep="")
+                        filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
+                        dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
+                        cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                        match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
+                        return(match_results)
+                      }
+                    } else {
+                      log_mes <- paste(pid,"-Matching with land_cover:Succeed\n",sep="")
+                      match_results <- list("match_obj" = m, "df" = this_d, "func"=f, "prematch_d"=prematch_d)
+                      filepath<-file.path(f.path3,paste0("/WDPA_matching_log/",iso3))
+                      dir.create(filepath, recursive = TRUE, showWarnings = FALSE)
+                      cat(log_mes,file=paste(f.path3,"/WDPA_matching_log/",iso3,"/",iso3,"_pa_",pid,"_matching_used_covar_log_wk", gediwk,".txt",sep=""),append=TRUE)
+                      return(match_results)
+                    }
+                  }
   
   stopImplicitCluster()  #_@_@
   return(ret)
