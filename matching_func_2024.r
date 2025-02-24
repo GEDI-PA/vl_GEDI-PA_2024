@@ -621,7 +621,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     } else {
       # Select relevant columns from GEDI L4A
       ### Drop the geometry, it's redundant
-      gedi_l4_sub <- gedil4_f %>% st_drop_geometry() %>%
+      gedi_l4_sub <- gedil4_f %>% #st_drop_geometry() %>%
         dplyr::select(shot_number, agbd, agbd_se, agbd_t, agbd_t_se)
       ### Return here, do the join in the outer function
       # Join with GEDI L2A data
