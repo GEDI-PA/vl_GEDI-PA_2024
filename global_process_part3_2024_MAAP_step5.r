@@ -338,11 +338,14 @@ for (this_rds in matched_PAs) {
     # Create output directory if it does not exist
     dir.create(file.path(f.path3, "WDPA_GEDI_extract"), recursive = TRUE, showWarnings = FALSE)
     
+    iso_matched_gedi_sf <- st_as_sf(iso_matched_gedi, wkt = "geometry", crs = 4326)  # Assuming "geometry" column contains WKT format
+    
+    
     # # Save results to RDS and CSV files
     # saveRDS(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
     #                                        "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
-    st_write(iso_matched_gedi, paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
-                                              "_iso_matched_gedi_sub_wk_", gediwk, ".gpkg", sep = ""),append=FALSE)
+    st_write(iso_matched_gedi_sf, paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
+                                              "_iso_matched_gedi_sub_wk_", gediwk, ".gpkg", sep = ""))
     
     cat(id_pa, "in", iso3, "results are written to directory\n")
 }
