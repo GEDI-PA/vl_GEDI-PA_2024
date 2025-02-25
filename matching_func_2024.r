@@ -723,61 +723,112 @@ stac_to_terra <- function(catalog_url, ...) {
 
 
                                                
-extract_gediPart2 <- function(matched,# Add notes for what these variables are!
+# extract_gediPart2 <- function(matched,# Add notes for what these variables are!
+#                               mras,
+#                               extracted,
+#                               glad_change_rast,#GLAD Change per country
+#                               glad_rast_2020){#GLAD Landcover per country
+#     iso_matched_gedi_df <- NULL
+#     results_list <- list()
+#     # Initialize empty spatial object for the current iteration
+
+#     for (this_csvid in seq_along(extracted)) {
+#         print(extracted[this_csvid])
+#         spatial_data <- vect(extracted[this_csvid])
+
+#         # Extract the 'glad_change' raster values and preserve spatial information
+#           spatial_data$glad_change <- terra::extract(glad_change_rast,spatial_data, df=TRUE)[[2]]
+#          spatial_data$glad_2020 <- terra::extract(glad_rast_2020,spatial_data, df=TRUE)[[2]]
+
+#           gedi_l24b_sp <- project(spatial_data, "epsg:6933") #May be creating new copy?
+#           rm(spatial_data) #Remove spatial_data from memory
+#           matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
+#           # matched_gedi_metrics <- inner_join(matched_gedi_metrics, spatial_data, by = "ID")
+#           # matched_gedi_metrics <- inner_join(matched_gedi_metrics, matched_glad, by = "ID")
+          
+#           matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
+#           # matched_gedi_metrics <- inner_join(matched_gedi_metrics, spatial_data, by = "ID")
+#           # matched_gedi_metrics <- inner_join(matched_gedi_metrics, matched_glad, by = "ID")
+
+#           matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
+#           convertFactor(matched0 = matched,exgedi = .) 
+#           #print(head(matched_gedi_metrics_filtered))
+          
+#           # iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
+#           print(dim(matched_gedi_metrics_filtered))
+#         # }
+    
+#     # Store results in a list
+#     results_list[[this_csvid]] <- matched_gedi_metrics_filtered
+#       }
+  
+#       # Combine all results
+#       if (length(results_list) > 0) {
+#         iso_matched_gedi_df <- do.call(rbind, results_list)
+#       }
+#     #If this breaks, add "else" statement for if results_list = 1
+#       print(dim(iso_matched_gedi_df))
+#       cat("Done GEDI processing\n")
+#       return(iso_matched_gedi_df)
+# }       
+
+extract_gediPart2 <- function(matched, 
                               mras,
                               extracted,
-                              glad_change_rast,#GLAD Change per country
-                              glad_rast_2020){#GLAD Landcover per country
+                              glad_change_rast, 
+                              glad_rast_2020) {
     iso_matched_gedi_df <- NULL
     results_list <- list()
-    # Initialize empty spatial object for the current iteration
 
+    # Initialize empty spatial object for the current iteration
     for (this_csvid in seq_along(extracted)) {
         print(extracted[this_csvid])
+        
+        # Load the spatial data (likely a vector object)
         spatial_data <- vect(extracted[this_csvid])
 
-        # Extract the 'glad_change' raster values and preserve spatial information
-          spatial_data$glad_change <- terra::extract(glad_change_rast, spatial_data, df = TRUE)[[2]]
-          
-          # Extract the 'glad_2020' raster values and preserve spatial information
-          spatial_data$glad_2020 <- terra::extract(glad_rast_2020, spatial_data, df = TRUE)[[2]]
-          
-          # Project spatial data to a new CRS (epsg:6933), and retain spatial information
-          gedi_l24b_sp <- terra::project(spatial_data, "epsg:6933") 
-          
-          # Optional: Remove the 'spatial_data' object from memory if no longer needed
-          rm(spatial_data)
-          
-          # Extract values from 'mras' raster to the projected spatial data and preserve spatial info
-          extracted_values <- terra::extract(mras, gedi_l24b_sp, df = TRUE)
-          
-          # Combine the extracted values with the spatial vector to preserve spatial information
-          # Assuming 'extracted_values' is a data frame, and 'gedi_l24b_sp' is a SpatVector
-          matched_gedi <- cbind(gedi_l24b_sp, extracted_values[, -1])  # Remove first column (ID or coordinates)
-          matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
-          # matched_gedi_metrics <- inner_join(matched_gedi_metrics, spatial_data, by = "ID")
-          # matched_gedi_metrics <- inner_join(matched_gedi_metrics, matched_glad, by = "ID")
-          
-          matched_gedi_metrics_filtered <- matched_gedi_metrics %>% dplyr::filter(!is.na(status)) %>% 
-          convertFactor(matched0 = matched,exgedi = .) 
-          #print(head(matched_gedi_metrics_filtered))
-          
-          # iso_matched_gedi_df <- rbind(matched_gedi_metrics_filtered,iso_matched_gedi_df)
-          print(dim(matched_gedi_metrics_filtered))
-        # }
-    
-    # Store results in a list
-    results_list[[this_csvid]] <- matched_gedi_metrics_filtered
-      }
-  
-      # Combine all results
-      if (length(results_list) > 0) {
+        # Extract the 'glad_change' and 'glad_2020' raster values
+        spatial_data$glad_change <- terra::extract(glad_change_rast, spatial_data, df = TRUE)[[2]]
+        spatial_data$glad_2020 <- terra::extract(glad_rast_2020, spatial_data, df = TRUE)[[2]]
+
+        # Project the spatial data to an appropriate CRS (e.g., EPSG:6933)
+        gedi_l24b_sp <- project(spatial_data, "epsg:6933")
+        rm(spatial_data)  # Free up memory
+
+        # Extract GEDI data using raster stack (mras)
+        matched_gedi <- terra::extract(mras, gedi_l24b_sp, df = TRUE)
+
+        # Combine the matched GEDI data and spatial data
+        matched_gedi_metrics <- cbind(matched_gedi, as.data.frame(gedi_l24b_sp))
+
+        # Convert the combined data (with geometry) to an 'sf' object
+        matched_gedi_sf <- st_as_sf(gedi_l24b_sp)  # This preserves the geometry directly from terra object
+        
+        # Add the extracted data to the 'sf' object
+        matched_gedi_sf <- cbind(matched_gedi_sf, matched_gedi_metrics)
+
+        # Filter and process the data
+        matched_gedi_metrics_filtered <- matched_gedi_sf %>%
+            filter(!is.na(status)) %>%
+            convertFactor(matched0 = matched, exgedi = .)
+
+        print(dim(matched_gedi_metrics_filtered))
+
+        # Store results in a list
+        results_list[[this_csvid]] <- matched_gedi_metrics_filtered
+    }
+
+    # Combine all results into one final dataframe (with geometry)
+    if (length(results_list) > 0) {
         iso_matched_gedi_df <- do.call(rbind, results_list)
-      }
-    #If this breaks, add "else" statement for if results_list = 1
-      print(dim(iso_matched_gedi_df))
-      cat("Done GEDI processing\n")
-      return(iso_matched_gedi_df)
+    }
+
+    # Print the dimensions of the final dataframe
+    print(dim(iso_matched_gedi_df))
+    cat("Done GEDI processing\n")
+    
+    # Return the final dataframe (with geometry)
+    return(iso_matched_gedi_df)
 }                                            
 
 ############################################################################################   
