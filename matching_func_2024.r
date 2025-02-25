@@ -736,19 +736,24 @@ extract_gediPart2 <- function(matched,# Add notes for what these variables are!
         print(extracted[this_csvid])
         spatial_data <- vect(extracted[this_csvid])
 
-        # extent <- sf::st_bbox(spatial_data)
-
-        # load the rasters
-            
-        
-          # extent <- terra::ext(spatial_data)
-          # selection <- terra::crop(glad_rast_change, extent)
-         spatial_data$glad_change <- terra::extract(glad_change_rast,spatial_data, df=TRUE)[[2]]
-         spatial_data$glad_2020 <- terra::extract(glad_rast_2020,spatial_data, df=TRUE)[[2]]
-
-          gedi_l24b_sp <- project(spatial_data, "epsg:6933") #May be creating new copy?
-          rm(spatial_data) #Remove spatial_data from memory
-          matched_gedi <- terra::extract(mras,gedi_l24b_sp, df=TRUE)
+        # Extract the 'glad_change' raster values and preserve spatial information
+          spatial_data$glad_change <- terra::extract(glad_change_rast, spatial_data, df = TRUE)[[2]]
+          
+          # Extract the 'glad_2020' raster values and preserve spatial information
+          spatial_data$glad_2020 <- terra::extract(glad_rast_2020, spatial_data, df = TRUE)[[2]]
+          
+          # Project spatial data to a new CRS (epsg:6933), and retain spatial information
+          gedi_l24b_sp <- terra::project(spatial_data, "epsg:6933") 
+          
+          # Optional: Remove the 'spatial_data' object from memory if no longer needed
+          rm(spatial_data)
+          
+          # Extract values from 'mras' raster to the projected spatial data and preserve spatial info
+          extracted_values <- terra::extract(mras, gedi_l24b_sp, df = TRUE)
+          
+          # Combine the extracted values with the spatial vector to preserve spatial information
+          # Assuming 'extracted_values' is a data frame, and 'gedi_l24b_sp' is a SpatVector
+          matched_gedi <- cbind(gedi_l24b_sp, extracted_values[, -1])  # Remove first column (ID or coordinates)
           matched_gedi_metrics <- cbind(matched_gedi,gedi_l24b_sp)
           # matched_gedi_metrics <- inner_join(matched_gedi_metrics, spatial_data, by = "ID")
           # matched_gedi_metrics <- inner_join(matched_gedi_metrics, matched_glad, by = "ID")
