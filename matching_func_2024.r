@@ -721,7 +721,6 @@ stac_to_terra <- function(catalog_url, ...) {
             terra::rast(item_collection_dsn)
             }
 
-
                                                
 # extract_gediPart2 <- function(matched,# Add notes for what these variables are!
 #                               mras,
