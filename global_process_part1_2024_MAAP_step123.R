@@ -45,11 +45,24 @@ f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
 f.path3<- file.path(out)
 
+adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
+adm_prj <- project(vect(adm), "epsg:6933")
+
+vect_adm <- vect(adm)
+
+extent <- sf::st_bbox(vect_adm)
+
+source("matching_func_2024.r")
+
 glad <- paste0(iso3,"_GLADCover_reclass2000")
 gladEntry <- paste0(iso3,".GLADCover.reclass2000")
+
+gmw <- paste0(iso3,"_gmw1996")
+gmwEntry <- paste0(iso3,".gmw1996")
+
 matching_tifs <- c("d2roads", "dcities","dem",
                    "pop_cnt_2000","pop_den_2000","slope", "tt2cities_2000", "wc_prec_1990-1999",
-                   "wc_tmax_1990-1999-Copy1","wc_tavg_1990-1999","wc_tmin_1990-1999", glad)
+                   "wc_tmax_1990-1999-Copy1","wc_tavg_1990-1999","wc_tmin_1990-1999", glad, gmw)
 
 ecoreg_key <- read.csv(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
 #unlink(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
@@ -67,12 +80,8 @@ s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
               paste(f.path,"WDPA_countries/shp/",iso3,".prj",sep=""),
               paste(f.path,"WDPA_countries/shp/",iso3,".dbf",sep="")),confirm = FALSE)
 
-adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
-adm_prj <- project(vect(adm), "epsg:6933")
-
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
-#source(s3_get(paste(f.path,"matching_func.R",sep="")))
-#source(s3_get(paste(f.path,"matching_func_2024.R",sep="")))
+
 
 
 # STEP1. Create 1km sampling grid with points only where GEDI data is available; first check if grid file exist to avoid reprocessing 
@@ -181,6 +190,51 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
     nonPA_spdf$nm <- ras_ex[, matching_tifs[j]]
     names(nonPA_spdf)[j] <- matching_tifs[j]
   }
+nonPA_spdf$x <- geom(nonPA_spdf)[,"x"]
+  nonPA_spdf$y <- geom(nonPA_spdf)[,"y"]
+  
+  d_control <- nonPA_spdf
+  d_control$status <- as.logical("FALSE")
+  names(d_control) <- make.names(names(d_control), allow_ = FALSE)
+# STEP2. Clip sampling grid to nonPA areas within country & sample raster layers on nonPA grid
+cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
+#GRID.for.matching <- vect(GRID.for.matching)
+
+#if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
+#  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))){
+#      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))}    
+  cat("Step 2.1: Preparing control dataset for", iso3, "\n")
+  GRID.pts.nonPA <- project(GRID.for.matching, "epsg:4326") #***Ask Vero why we're doing this 1 at a time, rather than all at once maybe vectorize
+  for(i in 1:length(allPAs)){
+    PA          <- vect(allPAs[i,])
+    PA_prj      <- project(PA, "epsg:6933") #**Why do we have to change the projection twice?
+    PA_prj_buff <- buffer(PA_prj, width = 10000) ##10km buffer
+    PA2         <- project(PA_prj_buff, "epsg:4326") 
+    overlap     <- GRID.pts.nonPA[PA2]
+    if(length(overlap)>0){
+      GRID.pts.nonPA0 <- st_difference(sf::st_as_sf(GRID.pts.nonPA), sf::st_as_sf(PA2)) ##remove pts inside poly
+      GRID.pts.nonPA <- vect(GRID.pts.nonPA0$geometry)
+      GRID.pts.nonPA <- project(GRID.pts.nonPA, "epsg:4326")
+    } 
+    # print(length(GRID.pts.nonPA))
+  }
+  nonPA_xy  <- geom(GRID.pts.nonPA)[,c("x","y")]
+  colnames(nonPA_xy)  <- c("x","y")
+  nonPA_spdf  <- tryCatch(vect(nonPA_xy, crs="epsg:4326"),      
+                          error=function(cond){
+                            cat("Country too small - quit processing ", iso3, dim(nonPA_xy),"\n")
+                            return(quit(save="no"))})
+    
+    
+  for (j in 1:length(matching_tifs)){
+    ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
+    print(matching_tifs[j])
+    ras_ex <- extract(ras, nonPA_spdf, method="simple", factors=FALSE)
+    ras_ex[is.na(ras_ex)] <- 0
+    nm <- names(ras)
+    nonPA_spdf$nm <- ras_ex[, matching_tifs[j]]
+    names(nonPA_spdf)[j] <- matching_tifs[j]
+  }
   nonPA_spdf$x <- geom(nonPA_spdf)[,"x"]
   nonPA_spdf$y <- geom(nonPA_spdf)[,"y"]
   
@@ -190,6 +244,7 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
   d_control <- data.frame(d_control) %>%
     dplyr::rename(
       land_cover = gladEntry,
+      mangrove = gmwEntry,
       slope = slope,
       elevation = dem,
       popden = pop.den.2000,
@@ -246,6 +301,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
         ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
         ras <- crop(ras, testPA)
         ras_ex <- extract(ras, testPA_spdf, method="simple", factors=F)
+        ras_ex[is.na(ras_ex)] <- 0
         nm <- names(ras)
         testPA_spdf$nm <- ras_ex[, matching_tifs[j]]
         names(testPA_spdf)[j] <- matching_tifs[j]
@@ -265,7 +321,8 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       names(d_pa) <- make.names(names(d_pa), allow_ = FALSE)
       d_pa <- data.frame(d_pa) %>%
         dplyr::rename(
-              land_cover = gladEntry,
+              land_cover = GNB.GLADCover.reclass2000,
+              mangrove = gmwEntry,
               slope = slope,
               elevation = dem,
               popden = pop.den.2000,
@@ -280,7 +337,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
               lon = x,
               lat = y)
 
-      d_pa$land_cover <- factor(d_pa$land_cover, levels=sequence(13),
+      d_control$land_cover <- factor(d_control$land_cover, levels=sequence(13),
                                  labels = c("desert","semi_arid","dense_short","tree_short","tree_med","tree_tall",
                                            "salt pan", "sparse_veg_wetland","dense_short_wetland", "tree_short_wetland",
                                            "tree_med_wetland","tree_tall_wetland","water"))  
