@@ -297,11 +297,11 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       colnames(testPA_xy) <- c("x","y")
       testPA_spdf  <- vect(testPA_xy, crs="epsg:4326")
                               
-        for (j in 1:length(matching_tifs)){
+       for (j in 1:length(matching_tifs)){
         ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
+        ras[is.na(ras)] <- 0
         ras <- crop(ras, testPA)
         ras_ex <- extract(ras, testPA_spdf, method="simple", factors=F)
-        ras_ex[is.na(ras_ex)] <- 0
         nm <- names(ras)
         testPA_spdf$nm <- ras_ex[, matching_tifs[j]]
         names(testPA_spdf)[j] <- matching_tifs[j]
