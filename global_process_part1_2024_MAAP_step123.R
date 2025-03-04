@@ -45,7 +45,8 @@ f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
 f.path3<- file.path(out)
 
-adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
+adm <- st_read(paste(sub("s3://","/vsis3/", f.path),"WDPA_countries/shp/",iso3,".shp",sep=""))
+
 adm_prj <- project(vect(adm), "epsg:6933")
 
 vect_adm <- vect(adm)
@@ -321,7 +322,7 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       names(d_pa) <- make.names(names(d_pa), allow_ = FALSE)
       d_pa <- data.frame(d_pa) %>%
         dplyr::rename(
-              land_cover = GNB.GLADCover.reclass2000,
+              land_cover = gladEntry,
               mangrove = gmwEntry,
               slope = slope,
               elevation = dem,
