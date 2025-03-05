@@ -60,7 +60,8 @@ s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
               paste(f.path,"WDPA_countries/shp/",iso3,".prj",sep=""),
               paste(f.path,"WDPA_countries/shp/",iso3,".dbf",sep="")),confirm = FALSE)
 
-adm <- st_read(s3_get(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep="")))
+adm <- st_read(paste(sub("s3://","/vsis3/", f.path),"WDPA_countries/shp/",iso3,".shp",sep=""))
+
 adm_prj <- project(vect(adm), "epsg:6933")
 
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
