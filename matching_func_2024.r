@@ -60,7 +60,7 @@ match_wocat <- function(df, pid) {
                     
                     this_d$land_cover <- droplevels(this_d$land_cover)
                     # table(this_d$status)
-                   dat <- dplyr::select(this_d, lat, lon, UID, status, land_cover, elevation, slope,
+                   dat <- dplyr::select(this_d, lat, lon, UID, status, land_cover, mangrove, elevation, slope,
                          mean_temp,max_temp,min_temp, prec, d2road, d2city,  popden, tt2city, popcnt) 
                     ps_A <- glm(status ~ mean_temp+max_temp+min_temp + prec + elevation + slope+ d2road + d2city + popden +popcnt+ tt2city,data = dat)
                     dat$propensity_scoreA <- fitted(ps_A)
@@ -161,7 +161,7 @@ propensity_filter <- function(pa_df, d_control_local){
   d <- dplyr::bind_rows(d_control_local, pa_df)
   ## bring in matching algorithm from STEP5 here to loop through each PA in d_PAs
   #filter controls based on propensity scores 
-  d_all <- dplyr::select(d, lat, lon, UID, status, land_cover, elevation, slope,
+  d_all <- dplyr::select(d, lat, lon, UID, status, land_cover, mangrove, elevation, slope,
                          mean_temp,max_temp,min_temp, prec, d2road, d2city,  popden, tt2city, popcnt) 
   #**** HOMEWORK ABOVE Add ps model object and propensity score to above og dataframe, add to wocat function
   d_all$status <- ifelse(d_all$status==TRUE,1,0)
