@@ -43,6 +43,7 @@ cat("Step 0: Loading global variables for", iso3,"with wk", gediwk, "data \n")
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+veropath<- "/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/" #Make sure to specify username
 f.path3<- file.path(out)
 
 adm <- st_read(paste(sub("s3://","/vsis3/", f.path),"WDPA_countries/shp/",iso3,".shp",sep=""))
@@ -70,10 +71,10 @@ ecoreg_key <- read.csv(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
 
 allPAs <- readRDS(s3_get(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep="")))
 
-MCD12Q1 <- rast(s3_get(paste(f.path,"GEDI_ANCI_PFT_r1000m_EASE2.0_UMD_v1_projection_defined_6933.tif",sep="")))
+MCD12Q1 <- rast(paste(veropath,"GEDI_ANCI_PFT_r1000m_EASE2.0_UMD_v1_projection_defined_6933.tif",sep=""))
 crs(MCD12Q1)  <- "epsg:6933"
 
-world_region <- rast(s3_get(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep="")))
+world_region <- rast(paste(veropath,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep=""))
 crs(world_region)  <- "epsg:6933"
 
 s3_get_files(c(paste(f.path,"WDPA_countries/shp/",iso3,".shp",sep=""),
@@ -88,8 +89,8 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 # STEP1. Create 1km sampling grid with points only where GEDI data is available; first check if grid file exist to avoid reprocessing 
 #if(!file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))){
   cat("Step 1: Creating 1km sampling grid filter GEDI data for", iso3,"\n")
-  GRID.lats <- rast(s3_get(paste(f.path,"EASE2_M01km_lats.tif", sep="")))
-  GRID.lons <- rast(s3_get(paste(f.path,"EASE2_M01km_lons.tif", sep="")))
+  GRID.lats <- rast(paste(veropath,"EASE2_M01km_lats.tif", sep=""))
+  GRID.lons <- rast(paste(veropath,"EASE2_M01km_lons.tif", sep=""))
   GRID.lats.adm   <- crop(GRID.lats, adm_prj)
   GRID.lats.adm.m <- mask(GRID.lats.adm, adm_prj)
   GRID.lons.adm   <- crop(GRID.lons, adm_prj)
@@ -184,7 +185,7 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
     
     
   for (j in 1:length(matching_tifs)){
-    ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
+    ras <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
     print(matching_tifs[j])
     ras_ex <- extract(ras, nonPA_spdf, method="simple", factors=FALSE)
     nm <- names(ras)
@@ -228,10 +229,10 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
     
     
   for (j in 1:length(matching_tifs)){
-    ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
+    ras <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
     print(matching_tifs[j])
     ras_ex <- extract(ras, nonPA_spdf, method="simple", factors=FALSE)
-    ras_ex[is.na(ras_ex)] <- 0
+    # ras_ex[is.na(ras_ex)] <- 0
     nm <- names(ras)
     nonPA_spdf$nm <- ras_ex[, matching_tifs[j]]
     names(nonPA_spdf)[j] <- matching_tifs[j]
@@ -299,8 +300,8 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       testPA_spdf  <- vect(testPA_xy, crs="epsg:4326")
                               
        for (j in 1:length(matching_tifs)){
-        ras <- rast(s3_get(paste(f.path2, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
-        ras[is.na(ras)] <- 0
+        ras <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
+        # ras[is.na(ras)] <- 0
         ras <- crop(ras, testPA)
         ras_ex <- extract(ras, testPA_spdf, method="simple", factors=F)
         nm <- names(ras)
