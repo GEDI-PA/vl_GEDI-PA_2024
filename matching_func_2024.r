@@ -237,6 +237,8 @@ matched2ras <- function(matched_df) {
   matched_pts$UID <- as.integer(matched_pts$UID)
   matched_pts$pa_id <- as.integer(matched_pts$pa_id)
   matched_pts$status <- as.logical(matched_pts$status)
+  matched_pts$land_cover <- as.integer(matched_pts$land_cover)
+  matched_pts$mangrove <- as.integer(matched_pts$mangrove)
   # matched_pts$wwfbiom <- as.numeric(matched_pts$wwfbiom)
   # matched_pts$wwfecoreg <- as.numeric(matched_pts$wwfecoreg)
   
@@ -254,7 +256,7 @@ matched2ras <- function(matched_df) {
   names(continent) <- "region"
   
   # List of fields to rasterize
-  fields <- c("status", "pa_id", "UID")
+  fields <- c("status", "pa_id", "UID","land_cover","mangrove")
   rasters <- list()
   
   # Rasterize each field
@@ -721,6 +723,53 @@ stac_to_terra <- function(catalog_url, ...) {
             terra::rast(item_collection_dsn)
             }
 
+#STAC for pulling GMW
+stac_to_terra2 <- function(catalog_url, asset_name, ...) {
+    # fetch STAC items
+    stac <- rstac::stac(catalog_url)
+    stac_items <- stac |>
+      rstac::stac_search(
+        ...
+      ) |>
+      rstac::get_request()
+    
+    # replace s3:// prefixes with /vsis3
+    stac_items$features <- purrr::map(
+        stac_items$features,
+        ~ {
+            if (!is.null(.x$properties[["proj:code"]])) {
+                .x$properties[["proj:epsg"]] <- as.integer(
+                    gsub("EPSG:", "", .x$properties[["proj:code"]])
+                )
+            }
+
+            .x$stac_extensions <- purrr::map(
+                .x$stac_extensions,
+                ~gsub("projection/v2.0.0", "projection/v1.2.0", .x)
+            )
+
+            .x$assets <- purrr::map(
+                .x$assets,
+                ~{
+                    .x$href <- gsub("s3://", "/vsis3/", .x$href)
+                    .x
+                }
+            )
+        .x
+        }
+    )
+
+    item_collection_json_file <- tempfile(fileext=".json")
+    item_collection_json <- jsonlite::toJSON(stac_items, auto_unbox=TRUE, pretty=TRUE, digits=10)
+
+    write(item_collection_json, item_collection_json_file)
+    item_collection_dsn <- glue::glue(
+        "STACIT:\"{item_collection_json}\":asset={asset_name}",
+        item_collection_json=item_collection_json_file
+    )
+
+    terra::rast(item_collection_dsn)
+}                                            
                                                
 # extract_gediPart2 <- function(matched,# Add notes for what these variables are!
 #                               mras,
