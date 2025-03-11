@@ -2,7 +2,7 @@ algorithm_description: prepare control and PA points for matching
 algorithm_name: run_gedi_pa_extraction_5
 algorithm_version: main
 build_command: vl_GEDI-PA_2024/build_gedi_pa.sh
-disk_space: 80GB
+disk_space: 100GB
 docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/r:v4.0.0
 inputs:
   config: []
