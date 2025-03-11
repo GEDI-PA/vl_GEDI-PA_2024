@@ -70,7 +70,7 @@ crs(world_region)  <- "epsg:6933"
 
 s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="") #Redo this 
 
-adm <- st_read(s3_path)
+adm <- st_read(paste(sub("s3://","/vsis3/", f.path),"WDPA_countries/shp/",iso3,".shp",sep=""))
 
 adm_prj <- project(vect(adm), "epsg:6933")
 
@@ -101,6 +101,7 @@ extent <- sf::st_bbox(vect_adm)
    collections = "glad-glclu2020-v2",
    datetime = "2020-01-01T00:00:00Z",
             )
+
 reclass_matrix <- matrix(c(
    0,  1,  1, 
    2, 18, 2,
@@ -322,7 +323,7 @@ for (this_rds in matched_PAs) {
       }
         
         
-    selected_columns <- c("pa_id", "status", "shot_number", "glad_change","glad_2020",
+    selected_columns <- c("pa_id", "status","land_cover","mangrove", "shot_number", "glad_change","glad_2020",
                       "UID","fhd_normal","pai","landsat_treecover","rh20","rh70", "rh10", "rh60","rh100",  
                           "rh90", "rh50", "rh40", "rh98","rh80","rh30","rh25","rh75")
     # Process and select columns
