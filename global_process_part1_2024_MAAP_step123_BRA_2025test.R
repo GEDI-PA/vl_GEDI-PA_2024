@@ -62,9 +62,13 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
 #source(s3_get(paste(f.path,"matching_func_2024.R",sep="")))
 
 
+f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+#f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+
 # STEP1. Create 1km sampling grid with points only where GEDI data is available; first check if grid file exist to avoid reprocessing 
-#if(!file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))){
+if(!file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))){
   cat("Step 1: Creating 1km sampling grid filter GEDI data for", iso3,"\n")
+f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
   GRID.lats <- rast(s3_get(paste(f.path,"EASE2_M01km_lats.tif", sep="")))
   GRID.lons <- rast(s3_get(paste(f.path,"EASE2_M01km_lons.tif", sep="")))
   GRID.lats.adm   <- crop(GRID.lats, adm_prj)
@@ -72,7 +76,7 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   GRID.lons.adm   <- crop(GRID.lons, adm_prj)
   GRID.lons.adm.m <- mask(GRID.lons.adm, adm_prj)
   rm(GRID.lats, GRID.lons, GRID.lats.adm, GRID.lons.adm)
-  
+
   #1.3) extract coordinates of raster cells with valid GEDI data in them
   gedi_folder <- paste(f.path,"WDPA_gedi_L4A_tiles/",sep="")
   tileindex_df <- read.csv(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
@@ -117,21 +121,23 @@ load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
   #GRID.for.matching <- SpatialPoints(coords = GRID.coords, proj4string=CRS("+init=epsg:4326"))
   GRID.for.matching <- vect(GRID.coords, geom=c("x.overlap","y.overlap"), crs = "epsg:4326")
 
-  filename_out <- paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep="")
-#  filename_out <- paste("/projects/my-public-bucket/GEDI_global_PA_v2/WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep="")
+f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+#  filename_out <- paste("output/",iso3,"_grid_wk",gediwk,".RDS", sep="")
+  filename_out <- paste("/projects/my-public-bucket/GEDI_global_PA_v2/WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep="")
   saveRDS(GRID.for.matching, file = filename_out)
-#} else if (file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))) {
-#  cat(paste("STEP 1: Grid file exists, no need to process grids for ",iso3, "\n"))
-#}
+} else if (file.exists(paste(f.path,"WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))) {
+  cat(paste("STEP 1: Grid file exists, no need to process grids for ",iso3, "\n"))
+}
 
 
 # STEP2. Clip sampling grid to nonPA areas within country & sample raster layers on nonPA grid
 cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
+GRID.for.matching <- readRDS(paste("/projects/my-public-bucket/GEDI_global_PA_v2/WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))
 #GRID.for.matching <- vect(GRID.for.matching)
 
-#if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
-#  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))){
-#      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))}    
+if(!file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
+  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))){
+      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",sep=""))}    
   cat("Step 2.1: Preparing control dataset for", iso3, "\n")
   GRID.pts.nonPA <- project(GRID.for.matching, "epsg:4326")
   for(i in 1:length(allPAs)){
@@ -154,6 +160,8 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
                             cat("Country too small - quit processing ", iso3, dim(nonPA_xy),"\n")
                             return(quit(save="no"))})
     
+#f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
     
   for (j in 1:length(matching_tifs)){
     ras <- rast(s3_get(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
@@ -211,12 +219,14 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
   
   d_control$UID <-  seq.int(nrow(d_control))
   
-    filename_out <- paste("output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
-#    filename_out <- paste("/projects/my-public-bucket/GEDI_global_PA_v2/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
+f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+#f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+#  filename_out <- paste("output/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
+    filename_out <- paste("/projects/my-public-bucket/GEDI_global_PA_v2/WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS", sep="")
     saveRDS(d_control, file = filename_out)  
-#} else if (file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
-#  cat("Step 2.1: preppred control dataset already exists for", iso3, "no need for reprocessing\n")
-#}
+} else if (file.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_prepped_control_wk",gediwk,".RDS",sep=""))){
+  cat("Step 2.1: preppred control dataset already exists for", iso3, "no need for reprocessing\n")
+}
 
 
 #STEP3. Loop through all PAs in iso3 country:
@@ -225,7 +235,9 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
 # - save each PA sample into prepped_pa_##.RDS file
 
 cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
+GRID.for.matching <- readRDS(paste("/projects/my-public-bucket/GEDI_global_PA_v2/WDPA_grids/",iso3,"_grid_wk",gediwk,".RDS", sep=""))
 #GRID.for.matching <- vect(GRID.for.matching)
+allPAs <- readRDS(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep=""))
 
 #if(length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""),pattern = paste(gediwk,".RDS",sep="")))==0){
 #  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))){
@@ -242,7 +254,10 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       testPA_xy <- geom(GRID.pts.testPA)[,c("x","y")]
       colnames(testPA_xy) <- c("x","y")
       testPA_spdf  <- vect(testPA_xy, crs="epsg:4326")
-                              
+
+#f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+
         for (j in 1:length(matching_tifs)){
         ras <- rast(s3_get(paste(f.path, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep="")))
         ras <- crop(ras, testPA)
@@ -305,8 +320,10 @@ cat("Step 3.0: Reading 1k GRID from RDS for " ,iso3, "\n")
       
       d_pa$UID <- seq.int(nrow(d_pa))
 
-      filename_out <- paste("output/",iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
-#      filename_out <- paste("/projects/my-public-bucket/GEDI_global_PA_v2/",iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
+f.path <- "/projects/my-public-bucket/GEDI_global_PA_v2/"
+#f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
+#      filename_out <- paste("output/",iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
+      filename_out <- paste("/projects/my-public-bucket/GEDI_global_PA_v2/WDPA_matching_points/",iso3,"/",iso3,"_testPAs/",iso3,"_prepped_pa_",testPA$WDPAID,"_wk",gediwk,".RDS", sep="")
       saveRDS(d_pa, file = filename_out)  
     }
   }
