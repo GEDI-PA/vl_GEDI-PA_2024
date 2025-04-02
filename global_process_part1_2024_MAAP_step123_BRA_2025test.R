@@ -38,6 +38,7 @@ matching_tifs <- c("d2roads","dcities","dem","slope",
 
 ecoreg_key <- read.csv(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
 #unlink(s3_get(paste(f.path,"wwf_ecoregions_key.csv",sep="")))
+unlink(s3_get(paste(f.path,"vero_1deg_tileindex/tileindex_",iso3,".csv", sep="")))
 
 allPAs <- readRDS(s3_get(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep="")))
 
@@ -240,8 +241,8 @@ GRID.for.matching <- readRDS(paste("/projects/my-public-bucket/GEDI_global_PA_v2
 allPAs <- readRDS(paste(f.path,"WDPA_shapefiles/WDPA_polygons/",iso3,"_PA_poly.rds",sep=""))
 
 #if(length(dir(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""),pattern = paste(gediwk,".RDS",sep="")))==0){
-#  if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))){
-#      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))}
+if(!dir.exists(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))){
+      dir.create(paste(f.path,"WDPA_matching_points/",iso3,"/",iso3,"_testPAs","/",sep=""))}
   cat("Step 3.1: Processing prepped PA treatment dataset for ", iso3, "\n")
   for(i in 1:length(allPAs)){
     cat(iso3, i, "out of ", length(allPAs), "\n")
