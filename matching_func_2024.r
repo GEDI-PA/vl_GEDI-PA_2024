@@ -157,6 +157,7 @@ match_wocat <- function(df, pid) {
 }
 
 propensity_filter <- function(pa_df, d_control_local){
+  pa_df$mangrove[is.na(pa_df$mangrove)] <- 0  
   pa_df <-pa_df[complete.cases(pa_df), ]  #filter away non-complete cases w/ NA in control set
   d <- dplyr::bind_rows(d_control_local, pa_df)
   ## bring in matching algorithm from STEP5 here to loop through each PA in d_PAs
@@ -230,6 +231,7 @@ matched2ras <- function(matched_df) {
   #                                         proj4string=CRS("+init=epsg:4326"), data=matched_df) %>% 
   #                                         spTransform(., CRS("+init=epsg:6933"))
   matched_pts<- vect(matched_df)
+ #4/14 - Something is weird here 
   crs(matched_pts)<-"epsg:4326"
   matched_pts<-project(matched_pts, "epsg:6933")
   
@@ -818,7 +820,194 @@ stac_to_terra2 <- function(catalog_url, asset_name, ...) {
 #       print(dim(iso_matched_gedi_df))
 #       cat("Done GEDI processing\n")
 #       return(iso_matched_gedi_df)
-# }       
+# }  
+                                               
+##*****************************************************************************************
+# THIS SECTION LOOKS AT TILE BBOXES TO PULL ONLY THE EXTRACTED GPKGS THAT 
+#ACTUALLY INTERSECT WITH THE PA
+
+# Function to read GeoJSON from URL and extract bounding box
+get_bbox_from_geojson_url <- function(url) {
+  tryCatch({
+    # Use GET to retrieve the file content from the URL
+    response <- GET(url)
+    
+    # Check if the request was successful
+    if (status_code(response) == 200) {
+      # Convert the content to text and parse as JSON
+      geojson_text <- content(response, "text")
+      geojson_data <- fromJSON(geojson_text, simplifyVector = FALSE)
+      
+      # Try to extract the bounding box
+      # Method 1: Check if bbox is directly available in the GeoJSON
+      if (!is.null(geojson_data$bbox)) {
+        bbox <- geojson_data$bbox
+        return(list(
+          xmin = bbox[1],
+          ymin = bbox[2],
+          xmax = bbox[3],
+          ymax = bbox[4]
+        ))
+      }
+      
+      # Method 2: Convert to sf object and calculate bbox
+      # Write the GeoJSON to a temporary file
+      temp_file <- tempfile(fileext = ".geojson")
+      writeLines(geojson_text, temp_file)
+      
+      # Read with sf
+      sf_obj <- st_read(temp_file, quiet = TRUE)
+      
+      # Calculate bbox
+      bbox <- st_bbox(sf_obj)
+      
+      # Clean up
+      unlink(temp_file)
+      
+      return(list(
+        xmin = bbox["xmin"],
+        ymin = bbox["ymin"],
+        xmax = bbox["xmax"],
+        ymax = bbox["ymax"]
+      ))
+    } else {
+      stop(paste("Failed to retrieve file. Status code:", status_code(response)))
+    }
+  }, error = function(e) {
+    cat("Error:", e$message, "\n")
+    return(NULL)
+  })
+}
+
+# Function to extract bboxes from a list of URLs
+extract_all_bboxes <- function(aoi_list) {
+  bboxes <- list()
+  
+  for (i in seq_along(aoi_list)) {
+    aoi_url <- aoi_list[i]
+    
+    # Get bbox for this AOI
+    bbox <- get_bbox_from_geojson_url(aoi_url)
+    
+    # Store the result if not NULL
+    if (!is.null(bbox)) {
+      bboxes[[i]] <- bbox
+      bboxes[[i]]$url <- aoi_url  # Store the URL with the bbox
+    }
+  }
+  
+  # Remove NULL elements
+  bboxes <- bboxes[!sapply(bboxes, is.null)]
+  
+  return(bboxes)
+}
+                                               
+
+    # Function to check if a data frame intersects with any of the bounding boxes
+check_dataframe_intersection <- function(df, bbox_list) {
+  # Ensure the data frame has longitude and latitude columns
+  if (!all(c("lon", "lat") %in% colnames(df))) {
+    stop("Data frame must have 'longitude' and 'latitude' columns")
+  }
+  
+  # Convert to sf object
+  df_sf <- st_as_sf(df, coords = c("lon", "lat"), crs = 4326)
+  
+  # Initialize results
+  intersecting_aois <- list()
+  
+  # Check intersection with each bbox
+  for (bbox in bbox_list) {
+    # Create a polygon from the bbox
+    bbox_polygon <- st_polygon(list(rbind(
+      c(bbox$xmin, bbox$ymin),
+      c(bbox$xmax, bbox$ymin),
+      c(bbox$xmax, bbox$ymax),
+      c(bbox$xmin, bbox$ymax),
+      c(bbox$xmin, bbox$ymin)
+    )))
+    
+    # Convert to an sf object with CRS
+    bbox_sf <- st_sfc(bbox_polygon, crs = 4326)
+    
+    # Check for intersection
+    if (length(st_intersects(df_sf, bbox_sf)[[1]]) > 0) {
+      # Store the intersecting bbox with its URL
+      intersecting_aois <- c(intersecting_aois, list(bbox))
+    }
+  }
+  
+  return(intersecting_aois)
+}
+
+
+# Function to extract tile_num ID from URL
+extract_tile_num_id <- function(url) {
+  # Pattern specifically for tile_num_XXXXX in URLs
+  pattern <- "tile_num_(\\d+)"
+  
+  # Extract the ID number
+  match <- regexpr(pattern, url, perl = TRUE)
+  
+  if (match > 0) {
+    # Extract the matched text
+    matched_text <- regmatches(url, match)
+    
+    # Extract just the number
+    id <- as.numeric(gsub("tile_num_(\\d+)", "\\1", matched_text))
+    return(id)
+  }
+  
+  # Return NA if no match
+  return(NA)
+}
+
+# Extract IDs from the intersecting_aois list
+extract_tile_ids_from_aois <- function(aois_list) {
+  # Extract URLs from the aois list
+  urls <- sapply(aois_list, function(aoi) aoi$url)
+  
+  # Get the IDs
+  ids <- sapply(urls, extract_tile_num_id)
+  
+  # Create result data frame
+  results <- data.frame(
+    url = urls,
+    tile_id = ids,
+    stringsAsFactors = FALSE
+  )
+  
+  # Extract unique, valid IDs
+  unique_ids <- unique(na.omit(ids))
+  
+  return(list(
+    full_results = results,
+    unique_ids = unique_ids
+  ))
+}
+
+# Function to find files containing specific numbers
+match_files_with_numbers <- function(file_list, number_list) {
+  matching_files <- c()
+  
+  for (file in file_list) {
+    # Extract any numbers from filename
+    numbers <- as.numeric(unlist(regmatches(file, gregexpr("\\d+", file))))
+    
+    # Check if any extracted number matches our list
+    for (num in numbers) {
+      if (num %in% number_list) {
+        matching_files <- c(matching_files, file)
+        break  # Stop once we find a match
+      }
+    }
+  }
+  
+  return(matching_files)
+}                 
+
+##*****************************************************************************************
+                                               
 
 extract_gediPart2 <- function(matched, 
                               mras,
