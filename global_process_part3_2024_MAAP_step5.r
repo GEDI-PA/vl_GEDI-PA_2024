@@ -20,21 +20,21 @@ if (length(args)==0) {
 #-------------------------------------------------------------------------------
 
 
-options(repos = c(CRAN = "https://cloud.r-project.org"))
+# options(repos = c(CRAN = "https://cloud.r-project.org"))
 
-# # List of CRAN packages to be installed
-cran_packages <- c(
-  "s3","optmatch", "RItools"
-)
+# # # List of CRAN packages to be installed
+# cran_packages <- c(
+#   "s3","optmatch", "RItools"
+# )
 
-# Install CRAN packages
-install.packages(cran_packages, dependencies = TRUE)
+# # Install CRAN packages
+# install.packages(cran_packages, dependencies = TRUE)
 
-options(warn=-1)
-options(dplyr.summarise.inform = FALSE)
+# options(warn=-1)
+# options(dplyr.summarise.inform = FALSE)
 
 packages <- c("sf","rstac","dplyr","plyr","ggplot2","mapview","stringr","terra",
-              "foreach","optmatch","doParallel","RItools",
+              "foreach","optmatch","doParallel","RItools","httr","jsonlite",
               "rlang","tidyr","magrittr","aws.s3","s3")
 
 package.check <- lapply(packages, FUN = function(x) {
