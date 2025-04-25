@@ -232,7 +232,7 @@ cat("Step 2.0: Reading 1k GRID from RDS for " ,iso3, "\n")
     ras <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",matching_tifs[j],".tif", sep=""))
     print(matching_tifs[j])
     ras_ex <- extract(ras, nonPA_spdf, method="simple", factors=FALSE)
-    # ras_ex[is.na(ras_ex)] <- 0
+    ras_ex[is.na(ras_ex)] <- 0
     nm <- names(ras)
     nonPA_spdf$nm <- ras_ex[, matching_tifs[j]]
     names(nonPA_spdf)[j] <- matching_tifs[j]
