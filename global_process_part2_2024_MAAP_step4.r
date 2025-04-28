@@ -171,6 +171,7 @@ foreach(this_pa=d_PAs,.combine = foreach_rbind, .packages=c('sp','magrittr', 'dp
     path <- paste(f.path2,"/",iso3,"/",iso3,"_testPAs/",pa, sep="")
   cat("No.", match(pa,d_PAs),"of total",length(d_PAs),"PAs in ", iso3, "\n" )
   d_pa <- readRDS(s3_get(path))
+  d_pa$mangrove[is.na(d_pa$mangrove)] <- 0  
   d_filtered_prop <- tryCatch(propensity_filter(d_pa, d_control_local), error=function(e) return(NA))  #return a df of control and treatment after complete cases and propensity filters are applied
   # cat("Propensity score filtered DF dimension is",dim(d_filtered_prop),"\n")
   d_wocat_all <- tryCatch(filter(d_filtered_prop, status),error=function(e) return(NA))
