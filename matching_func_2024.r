@@ -593,24 +593,46 @@ extract_gedi <- function(matched, mras){
  # **************************************
 
                                                
-extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
+extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath,gedipath2){
     # Initialize an empty list to store results
   # results_list <- list()
   ### TODO: Are you sure you need the next line?
   iso_matched_gedi_df <- NULL # Initialize before loop
  
-   filepath <- file.path(f.path3, paste("combined_tile_",tile_id,".gpkg", sep = ""))
-   if(file.exists(filepath)){
-      print("File already exists",sep="")
-      } else {
+   filepath <- file.path(gedipath2, paste("combined_tile_",tile_id,".gpkg", sep = ""))
+   
+   # Check if file exists on S3 using sf/GDAL
+   file_exists <- tryCatch({
+     # Try to read the layers from the file - if it succeeds, file exists
+     layers <- st_layers(filepath)
+     TRUE
+   }, error = function(e) {
+     FALSE
+   })
+   
+   # Debug: Print the filepath and check if it exists
+   cat("Checking for file:", filepath, "\n")
+   cat("File exists:", file_exists, "\n")
+   
+   # Check if file exists and return early if it does
+   if(file_exists){
+      cat("File already exists - skipping processing:", filepath, "\n")
+      return(filepath)  # Return early, don't process anything else
+   }
+   
+   cat("File does not exist - starting processing for tile", tile_id, "\n")
+   
+   # Only execute the rest if file doesn't exist
    cat("Reading in no. ", tile, "csv of ", length(all_gedil2_f), "csvs for iso3", iso3, "\n")
 
     ### Make this it's own function
     # Read GEDI L4A data
+    cat("Reading L4A data...\n")
     gedil4_f_path <- paste(gedipath, "WDPA_gedi_L4A_tiles/",iso3,"/", all_gedil4_f[tile], sep = "")
     gedil4_f <- st_read(gedil4_f_path, int64_as_string = TRUE,drivers="GPKG")
     
     # Read GEDI L2A data
+    cat("Reading L2A data...\n")
     gedil2_f_path <- paste(gedipath, "WDPA_gedi_L2A_tiles/",iso3,"/", all_gedil2_f[tile], sep = "")
     gedil2_f <- st_read(gedil2_f_path, int64_as_string = TRUE,drivers="GPKG")
     
@@ -635,6 +657,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     
     ###TODO: Make this it's own function
     # Read GEDI L2B data
+    cat("Reading L2B data...\n")
     gedil2b_f_path <- paste(gedipath, "WDPA_gedi_L2B_tiles/",iso3,"/", all_gedil2b_f[tile], sep = "")
     gedil2b_f <- st_read(gedil2b_f_path, int64_as_string = TRUE,drivers="GPKG")
     names(gedil2b_f)[names(gedil2b_f) == "geolocation.lon_lowestmode"] <- "lon_lowestmode"
@@ -655,29 +678,43 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     if (nrow(gedil2b_f) < 1) {
       cat("Error: No data for GEDI L2B\n")
       gedi_l24b <- gedi_l24
-      gedi_l24b <- gedi_l24
       gedi_l24b$landsat_treecover<- NA
       gedi_l24b$pai <- NA
       gedi_l24b$fhd_normal <- NA
     } else {
-      # Select relevant columns from GEDI L4A
+      # Select relevant columns from GEDI L2B
       ### Drop the geometry, it's redundant
       gedi_l2b_sub <- gedil2b_f %>% st_drop_geometry() %>%
-        dplyr::select(shot_number, landsat_treecover, pai, fhd_normal,variables)
+        dplyr::select(shot_number, landsat_treecover, pai, fhd_normal, all_of(variables))
       ### Return here, do the join in the outer function
       # Join with GEDI L2A data
       gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")
     }
-    # Read GEDI L4C data
-    gedil4c_f_path <- paste(gedipath, "WDPA_gedi_L4C_tiles/",iso3,"/", all_gedil4c_f[tile], sep = "")
-    gedil4c_f <- st_read(gedil4c_f_path, int64_as_string = TRUE,drivers="GPKG")
+    
+    if (tile <= length(all_gedil4c_f) && !is.na(all_gedil4c_f[tile]) && all_gedil4c_f[tile] != "") {
+        # Read GEDI L4C data
+        cat("Reading L4C data...\n")
+        gedil4c_f_path <- paste(gedipath, "WDPA_gedi_L4C_tiles/",iso3,"/", all_gedil4c_f[tile], sep = "")
+        
+        # Try to read the L4C file
+        gedil4c_f <- tryCatch({
+            st_read(gedil4c_f_path, int64_as_string = TRUE, drivers="GPKG")
+        }, error = function(e) {
+            cat("Error reading L4C file:", e$message, "\n")
+            return(data.frame())  # Return empty data frame on error
+        })
+    } else {
+        cat("L4C file not available for tile", tile, " (index out of bounds or NA)\n")
+        gedil4c_f <- data.frame()  # Create empty data frame
+    }
     
     # Check if GEDI L4C data is empty
     if (nrow(gedil4c_f) < 1) {
-      cat("Error: No data for GEDI L4C\n")
+      cat("No data for GEDI L4C\n")
       gedi_l24bc <- gedi_l24b
       # Add NA columns for L4C variables (adjust column names as needed based on your L4C data)
       gedi_l24bc$wsci <- NA
+        gedi_l4c_sub <- data.frame() 
     } else {
       # Select relevant columns from GEDI L4C
       ### Drop the geometry, it's redundant
@@ -692,10 +729,10 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
     print(dim(gedi_l4c_sub))
     print(head(gedi_l24bc))
     st_write(gedi_l24bc, dsn = filepath)
-         
-    }
+    cat(tile_id, "in", iso3, "results written to:", filepath, "\n")
+    
     return(filepath)
-}       
+}    
 
 #Function to access STAC, this is used in the extract_gediPart2 function                                              
 stac_to_terra <- function(catalog_url, ...) {
