@@ -19,20 +19,6 @@ if (length(args)==0) {
 }
 #-------------------------------------------------------------------------------
 
-
-# options(repos = c(CRAN = "https://cloud.r-project.org"))
-
-# # # List of CRAN packages to be installed
-# cran_packages <- c(
-#   "s3","optmatch", "RItools"
-# )
-
-# # Install CRAN packages
-# install.packages(cran_packages, dependencies = TRUE)
-
-# options(warn=-1)
-# options(dplyr.summarise.inform = FALSE)
-
 packages <- c("sf","rstac","dplyr","plyr","ggplot2","mapview","stringr","terra",
               "foreach","optmatch","doParallel","RItools","httr","jsonlite",
               "rlang","tidyr","magrittr","aws.s3","s3")
@@ -43,19 +29,13 @@ package.check <- lapply(packages, FUN = function(x) {
 
 s3 <- paws::s3()
 
-# iso3<- "GNB"
 gediwk<-24
 
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/"
-gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
-gedipath2 <- paste("/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/",iso3,sep="")
+gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
+gedipath2 <- paste("/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/",iso3,sep="")
 f.path3<- file.path(out)
-# f.path3<- "~/output/WDPA_matching_results/"
-# f.path4<- "~/output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
-
-# f.path3<- file.path(out) #Rename folder to "output" since DPS looks for this, move up in the as default but allow an argument to change output file
-
 
 source("matching_func_2024.r")
 
@@ -69,17 +49,13 @@ crs(MCD12Q1)  <- "epsg:6933"
 world_region <- rast(s3_get(paste(f.path,"GEDI_ANCI_CONTINENT_r1000m_EASE2.0_UMD_v1_revised_projection_defined_6933.tif",sep="")))
 crs(world_region)  <- "epsg:6933"
 
-s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="") #Redo this 
+s3_path <- paste("/vsis3/maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/WDPA_countries/shp/",iso3,".shp",sep="")
 
 adm <- st_read(paste(sub("s3://","/vsis3/", f.path),"WDPA_countries/shp/",iso3,".shp",sep=""))
 
 adm_prj <- project(vect(adm), "epsg:6933")
 
 load(s3_get(paste(f.path,"rf_noclimate.RData",sep="")))
-
-# #GLAD Landcover Raster 
-# terra::setGDALconfig("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
-# terra::setGDALconfig("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", "TIF")
 
 # MAAP STAC API URL
 catalog_url <- "https://stac.maap-project.org"
@@ -89,7 +65,6 @@ vect_adm <- vect(adm)
 extent <- sf::st_bbox(vect_adm)
 
 #Adding code for AOI tiles to speed up code
-# Construct the file path with string interpolation
 file_path <- paste0(f.path,"vero_1deg_tileindex/tileindex_", iso3, ".csv")
 
 # Read the CSV file into a data frame
@@ -101,71 +76,12 @@ json_files <- tileindex_df$s3path
 # Assign to AOIs variable
 AOIs <- json_files
 
-#Call GLAD rasters from STAC once per folder
-  glad_change <- stac_to_terra(
-  catalog_url = catalog_url,
-  bbox = extent,
-  collections = "glad-glclu2020-change-v2",
-  datetime = "2020-01-01T00:00:00Z",
-         )
-         
-  glad_2020 <- stac_to_terra(
-   catalog_url = catalog_url,
-   bbox = extent,
-   collections = "glad-glclu2020-v2",
-   datetime = "2020-01-01T00:00:00Z",
-            )
+glad_rast_2020 <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_2020.tif", sep=""))
+glad_change_rast <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_change.tif", sep=""))
 
-reclass_matrix <- matrix(c(
-   0,  1,  1, 
-   2, 18, 2,
-   19, 24, 3,
-   25, 32, 4,
-   33, 42, 5,
-   43, 48, 6,
-   49,99, 99,
-   100, 101, 7,
-   102, 118, 8,
-   119, 124, 9,
-   125, 132, 10,
-   133, 142, 11,
-   143, 148, 12,
-   149, 199, 99,
-   200, 207, 13,
-   208, 255, 99
-), ncol = 3, byrow = TRUE)
-
-glad_rast_2020 <- classify(glad_2020, reclass_matrix)
-
-reclass_matrix2 <- matrix(c(
-   0,  1,  1, 
-   2, 18, 2,
-   19, 24, 3,
-   25, 48, 4,
-   49, 72, 5,
-   73, 96, 6,
-   97,99, 99,
-   100, 101, 7,
-   102, 118, 8,
-   119, 124, 9,
-   125, 148, 10,
-   149, 172, 11,
-   173, 196, 12,
-   197, 207, 99,
-   212, 239, 99
-), ncol = 3, byrow = TRUE)
-
-glad_change_rast <- classify(glad_change, reclass_matrix2)
-
-# glad_rast_2020 <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_2020.tif", sep=""))
-# glad_change_rast <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_change.tif", sep=""))
-
-#End GLAD Codes
-
-flag <- "run remaining"
+flag <- "run all"
 
 #---------Pull appropriate GEDI Tiles-------#
-# TO DO: SEPARATE TILES BY COUNTRY
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                             Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2A_tiles/",iso3,"/",sep=""))
 all_gedil2_f <- sapply(results$Contents, function(x) {x$Key})
@@ -194,13 +110,8 @@ pattern=paste(".gpkg",sep="")
 all_gedil4c_f <- grep(pattern, all_gedil4c_f, value=TRUE)
 all_gedil4c_f <- basename(all_gedil4c_f)
 
-
-#---------------STEP5. GEDI PROCESSING - using GEDI shots to extract the treatment/control status, also extract the MODIS PFT for AGB prediction---------------- 
-# if (file.exists(paste(f.path,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",iso3,"_gedi_extracted_matching_wk",gediwk,".RDS", sep=""))){
+#---------------STEP5. GEDI PROCESSING---------------- 
 cat(paste("Step 5: Performing WK ",gediwk,"GEDI extraction for", iso3,"\n"))
-#matched_all <-read.csv(paste(f.path,"WDPA_extract4_residual_PAs/", iso3, "_wk_", gediwk, "_null_matches_rerun.csv",sep="")) 
-# matched_all<-list.files(paste(f.path2,iso3,"_wk",gediwk,sep=""), pattern=".RDS", full.names = TRUE)
-# matched_all
 
 results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
 Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/",iso3,"/",iso3,"_wk24/",sep=""))
@@ -214,45 +125,53 @@ start<-new[1]
 stop<- new[2]
 matched_all<-matched_all[start:stop]
 
-matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %do% {   #non-NA matched results
-  matched_PAs=c()
-  print(this_rds)
+matched_PAs <- foreach(this_rds=matched_all, .combine = c, .packages=c('sp','magrittr', 'dplyr','tidyr','terra')) %do% {   
   if(nchar(iso3)>3){
     id_pa <- basename(this_rds)%>%readr::parse_number() %>% unique()  
   } else {
     id_pa <- basename(this_rds)%>%readr::parse_number() %>% unique()
   }
-  matched <- readRDS(s3_get(paste(f.path2,iso3,"/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")))
+  
+  matched <- tryCatch({
+    readRDS(s3_get(paste(f.path2,iso3,"/",iso3,"_wk",gediwk,"/",iso3,"_pa_", id_pa,"_matching_results_wk",gediwk,".RDS", sep="")))
+  }, error = function(e) {
+    return(NULL)
+  })
+  
   if(!is.null(matched)){
     if(nrow(matched)!=0){
-      matched_PAs=c(matched_PAs,this_rds) 
+      return(this_rds)
+    } else {
+      return(NULL)
     }
-  }else {
-    # print(this_rds)
-    matched_PAs=matched_PAs
+  } else {
+    return(NULL)
   }
-  return(matched_PAs)
 }
-length(matched_PAs)
 
-if(flag=="run all"){  #determine how many PAs to run the extraction process
+# Remove NULL values from the result
+if (length(matched_PAs) > 0) {
+  matched_PAs <- matched_PAs[!is.null(matched_PAs)]
+}
+
+if(flag=="run all"){  
   matched_PAs <- matched_PAs
-  cat("Step 5: runing extraction on all", length(matched_PAs),"of non-NA matched results in", iso3,"\n")
+  cat("Step 5: running extraction on all", length(matched_PAs),"of non-NA matched results in", iso3,"\n")
 } else if (flag=="run remaining"){
-  # pattern1 = c(paste("wk",gediwk,sep=""),"RDS")
-  # extracted_PAid <- list.files(paste(f.path2,"WDPA_GEDI_extract/",iso3,"_wk",gediwk,"/",sep=""), full.names = F, pattern=paste0(pattern1, collapse="|"))
-    results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
-Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_extract/",iso3,"/WDPA_GEDI_extract/",sep=""))
+  results <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+    Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_extract/",iso3,"/WDPA_GEDI_extract/",sep=""))
   extracted_PAid <- sapply(results$Contents, function(x) {x$Key})
+  
   pattern=paste("wk_",gediwk,sep="")
   extracted_PAid <- basename(grep(pattern, extracted_PAid, value=TRUE))%>%
     readr::parse_number() %>% unique()
+  
   matched_PA_id <- basename(matched_PAs) %>% readr::parse_number()
   runPA_id <- matched_PA_id[!(matched_PA_id %in% extracted_PAid)]
+  
   if (length(runPA_id)>0){
     Pattern2 <-  paste(runPA_id, collapse="|")
     runPA <-  matched_PAs[grepl(Pattern2,matched_PAs)]
-    # runPA_ind <- str_detect(matched_PAs, paste(runPA_id, collapse = "|"))
     matched_PAs <-runPA
   } else {
     matched_PAs <- NULL
@@ -260,19 +179,16 @@ Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_extract/",iso3,"/WD
   }
 }
 
-## Changed error catching and loop now works ##
-#Oct 15 Updated to split loop into multiple extract_gedi functions
-
+## Process GEDI tiles
 for (tile in seq_along(all_gedil2_f)){
     tile_id <- basename(all_gedil2_f[tile]) %>% readr::parse_number()
     iso_test<-tryCatch({
-        extract_gedi2b(iso3 = iso3,tile_id = tile_id,f.path3 = f.path3,gedipath = gedipath)
+        extract_gedi2b(iso3 = iso3,tile_id = tile_id,f.path3 = f.path3,gedipath = gedipath,gedipath2 = gedipath2)
         }, error = function(e) {
             cat("Error extracting GEDI data for tile:", e$message, "\n")
             return(NULL)
         })
     }
-
 
 # Use the function to get all bboxes
 bboxes <- extract_all_bboxes(AOIs)
@@ -315,51 +231,46 @@ for (this_rds in matched_PAs) {
         cat("Rasterized results unbalanced or null for PA", id_pa, "quitting...\n")
         next  # Skip to the next iteration
     }
-    
-    # Start timing for extraction
-    # startTime <- Sys.time()
 
+    # Check if the "matched" data frame intersects with any of the bboxes
+    intersecting_aois <- check_dataframe_intersection(matched, bboxes)
 
-# Check if the "matched" data frame intersects with any of the bboxes
-intersecting_aois <- check_dataframe_intersection(matched, bboxes)
+    # Print results
+    if (length(intersecting_aois) > 0) {
+      cat("\nThe 'matched' data frame intersects with", length(intersecting_aois), "AOI(s):\n")
+      
+      # Extract and display the URLs of intersecting AOIs
+      for (i in seq_along(intersecting_aois)) {
+        cat(i, ": ", basename(intersecting_aois[[i]]$url), "\n", sep="")
+      }
+      
+      # Extract just the URLs if needed
+      intersecting_urls <- sapply(intersecting_aois, function(x) x$url)
+      
+    } else {
+      cat("\nNo intersections found between the 'matched' data frame and any AOIs.\n")
+    }
+        
+    id_extraction <- extract_tile_ids_from_aois(intersecting_aois)
 
-# Print results
-if (length(intersecting_aois) > 0) {
-  cat("\nThe 'matched' data frame intersects with", length(intersecting_aois), "AOI(s):\n")
-  
-  # Extract and display the URLs of intersecting AOIs
-  for (i in seq_along(intersecting_aois)) {
-    cat(i, ": ", basename(intersecting_aois[[i]]$url), "\n", sep="")
-  }
-  
-  # Extract just the URLs if needed
-  intersecting_urls <- sapply(intersecting_aois, function(x) x$url)
-  
-} else {
-  cat("\nNo intersections found between the 'matched' data frame and any AOIs.\n")
-}
-    
-id_extraction <- extract_tile_ids_from_aois(intersecting_aois)
+    # Display the results
+    cat("Found", sum(!is.na(id_extraction$full_results$tile_id)), 
+        "tile IDs out of", nrow(id_extraction$full_results), "URLs\n")
+    cat("Found", length(id_extraction$unique_ids), "unique tile IDs\n\n")
 
-# Display the results
-cat("Found", sum(!is.na(id_extraction$full_results$tile_id)), 
-    "tile IDs out of", nrow(id_extraction$full_results), "URLs\n")
-cat("Found", length(id_extraction$unique_ids), "unique tile IDs\n\n")
+    # Show the unique IDs
+    cat("Unique tile IDs:", paste(id_extraction$unique_ids, collapse=", "), "\n")
 
-# Show the unique IDs
-cat("Unique tile IDs:", paste(id_extraction$unique_ids, collapse=", "), "\n")
+    # Get just the unique IDs as a vector for further use
+    unique_tile_ids <- id_extraction$unique_ids
 
-# Get just the unique IDs as a vector for further use
-unique_tile_ids <- id_extraction$unique_ids
+    # Get all GeoPackage files
+    gpkg_files <- list.files(gedipath2, pattern="\\.gpkg$", full.names = TRUE)
 
-# Get all GeoPackage files
-gpkg_files <- list.files(gedipath2, pattern="\\.gpkg$", full.names = TRUE)
-
-# Find files containing any of our ID numbers
-extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
-                              
-                                                          
-    # iso_test<-extract_gedi2b(iso3 = iso3)
+    # Find files containing any of our ID numbers
+    extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
+                                  
+                                  
     # Extract GEDI data with error handling
     iso_matched_gedi <- tryCatch({
         extract_gediPart2(matched = matched, mras = mras,extracted = extracted, glad_change_rast=glad_change_rast,glad_rast_2020=glad_rast_2020)
@@ -374,9 +285,6 @@ extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
         next  # Skip to the next iteration
     }
     
-    # Calculate elapsed time
-    # tElapsed <- Sys.time() - startTime
-    # cat(tElapsed, "for extracting all PAs in", iso3, "\n")
     cat("Done GEDI for PA", match(this_rds, matched_PAs), "out of", length(matched_PAs), "\n")
 
     variables <- c()
@@ -388,7 +296,6 @@ extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
       variables <- c(variables, paste("pai_z", n, sep=""))
       variables <- c(variables, paste("pavd_z", n, sep=""))
       }
-        
         
     selected_columns <- c("pa_id", "status","land_cover","mangrove", "shot_number", "glad_change","glad_2020",
                       "UID","fhd_normal","pai","landsat_treecover","rh20","rh70", "rh10", "rh60","rh100",  
@@ -406,12 +313,8 @@ extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
     # Create output directory if it does not exist
     dir.create(file.path(f.path3, "WDPA_GEDI_extract"), recursive = TRUE, showWarnings = FALSE)
     
-    iso_matched_gedi_sf <- st_as_sf(iso_matched_gedi, wkt = "geometry", crs = 4326)  # Assuming "geometry" column contains WKT format
+    iso_matched_gedi_sf <- st_as_sf(iso_matched_gedi, wkt = "geometry", crs = 4326)
     
-    
-    # # Save results to RDS and CSV files
-    # saveRDS(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
-    #                                        "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
     st_write(iso_matched_gedi_sf, paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
                                               "_iso_matched_gedi_sub_wk_", gediwk, ".gpkg", sep = ""),append=FALSE)
     
