@@ -49,6 +49,7 @@ gediwk<-24
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/" #Make sure to specify username
+gedipath2 <- paste("/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/",iso3,sep="")
 f.path3<- file.path(out)
 # f.path3<- "~/output/WDPA_matching_results/"
 # f.path4<- "~/output/WDPA_matching_results/" #Rename folder to "output" since DPS looks for this, move up in the code, set as default but allow an argument to change output file
