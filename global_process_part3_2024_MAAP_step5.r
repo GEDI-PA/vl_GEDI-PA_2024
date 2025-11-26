@@ -353,7 +353,7 @@ cat("Unique tile IDs:", paste(id_extraction$unique_ids, collapse=", "), "\n")
 unique_tile_ids <- id_extraction$unique_ids
 
 # Get all GeoPackage files
-gpkg_files <- list.files(f.path3, pattern="\\.gpkg$", full.names = TRUE)
+gpkg_files <- list.files(gedipath2, pattern="\\.gpkg$", full.names = TRUE)
 
 # Find files containing any of our ID numbers
 extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
