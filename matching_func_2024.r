@@ -157,7 +157,7 @@ match_wocat <- function(df, pid) {
 }
 
 propensity_filter <- function(pa_df, d_control_local){
-  pa_df$mangrove[is.na(pa_df$mangrove)] <- 0  
+  # pa_df$mangrove[is.na(pa_df$mangrove)] <- 0  
   pa_df <-pa_df[complete.cases(pa_df), ]  #filter away non-complete cases w/ NA in control set
   d <- dplyr::bind_rows(d_control_local, pa_df)
   ## bring in matching algorithm from STEP5 here to loop through each PA in d_PAs
@@ -599,7 +599,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
   ### TODO: Are you sure you need the next line?
   iso_matched_gedi_df <- NULL # Initialize before loop
  
-   filepath <- file.path(f.path3, paste(iso3,"_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
+   filepath <- file.path(f.path3, paste("combined_tile_",tile_id,".gpkg", sep = ""))
    if(file.exists(filepath)){
       print("File already exists",sep="")
       } else {
@@ -653,7 +653,7 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
         
     # Check if GEDI L2B data is empty
     if (nrow(gedil2b_f) < 1) {
-      cat("Error: No data for GEDI L4A\n")
+      cat("Error: No data for GEDI L2B\n")
       gedi_l24b <- gedi_l24
       gedi_l24b <- gedi_l24
       gedi_l24b$landsat_treecover<- NA
@@ -668,18 +668,30 @@ extract_gedi2b <- function(iso3,tile_id,f.path3,gedipath){
       # Join with GEDI L2A data
       gedi_l24b <- inner_join(gedi_l24, gedi_l2b_sub, by = "shot_number")
     }
-    print(dim(gedi_l2b_sub))
-    print(head(gedi_l24b))
-    # print(colnames(gedi_l24b))
-    # names(gedi_l24b)[names(gedi_l24b) == "shot_number"] <- "shotnum"
-    # names(gedi_l24b)[names(gedi_l24b) == "lon_lowestmode"] <- "lonlow"
-    # names(gedi_l24b)[names(gedi_l24b) == "lat_lowestmode"] <- "latlow"
-    # names(gedi_l24b)[names(gedi_l24b) == "landsat_treecover"] <- "landtree"
-    # names(gedi_l24b)[names(gedi_l24b) == "geolocation.sensitivity_a2"] <- "geosens"
-    # st_write(gedi_l24b, dsn = paste(f.path3, iso3,"_extractStep1/", iso3, 
-    #                                        "_gedi_wk_", gediwk, "_Extracted",tile_id,".gpkg", sep = ""))
-    st_write(gedi_l24b, dsn = filepath)
-    cat(tile_id, "in", iso3, "results are written to directory\n",filepath)
+    # Read GEDI L4C data
+    gedil4c_f_path <- paste(gedipath, "WDPA_gedi_L4C_tiles/",iso3,"/", all_gedil4c_f[tile], sep = "")
+    gedil4c_f <- st_read(gedil4c_f_path, int64_as_string = TRUE,drivers="GPKG")
+    
+    # Check if GEDI L4C data is empty
+    if (nrow(gedil4c_f) < 1) {
+      cat("Error: No data for GEDI L4C\n")
+      gedi_l24bc <- gedi_l24b
+      # Add NA columns for L4C variables (adjust column names as needed based on your L4C data)
+      gedi_l24bc$wsci <- NA
+    } else {
+      # Select relevant columns from GEDI L4C
+      ### Drop the geometry, it's redundant
+      # Note: Adjust column names based on your actual L4C data structure
+      gedi_l4c_sub <- gedil4c_f %>% st_drop_geometry() %>%
+        dplyr::select(shot_number, wsci)
+      ### Return here, do the join in the outer function
+      # Join with existing combined data
+      gedi_l24bc <- inner_join(gedi_l24b, gedi_l4c_sub, by = "shot_number")
+    }
+    
+    print(dim(gedi_l4c_sub))
+    print(head(gedi_l24bc))
+    st_write(gedi_l24bc, dsn = filepath)
          
     }
     return(filepath)
