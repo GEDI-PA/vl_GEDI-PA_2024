@@ -89,10 +89,10 @@ extent <- sf::st_bbox(vect_adm)
 
 #Adding code for AOI tiles to speed up code
 # Construct the file path with string interpolation
-file_path <- paste0("/projects/my-public-bucket/GEDI_global_PA_v2/vero_1deg_tileindex/tileindex_", iso3, ".csv")
+file_path <- paste0(f.path,"vero_1deg_tileindex/tileindex_", iso3, ".csv")
 
 # Read the CSV file into a data frame
-tileindex_df <- read.csv(file_path)
+tileindex_df <- read.csv(s3_get(file_path))
 
 # Extract the s3path column
 json_files <- tileindex_df$s3path
@@ -178,6 +178,7 @@ all_gedil4_f <- sapply(results4$Contents, function(x) {x$Key})
 pattern4=paste(".gpkg",sep="")
 all_gedil4_f <- grep(pattern4, all_gedil4_f, value=TRUE)
 all_gedil4_f <- basename(all_gedil4_f)
+
 results2b <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
                         Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L2B_tiles/",iso3,"/",sep=""))
 all_gedil2b_f <- sapply(results2b$Contents, function(x) {x$Key})
@@ -185,6 +186,12 @@ pattern=paste(".gpkg",sep="")
 all_gedil2b_f <- grep(pattern, all_gedil2b_f, value=TRUE)
 all_gedil2b_f <- basename(all_gedil2b_f)
 
+results4c <- s3$list_objects_v2(Bucket = "maap-ops-workspace", 
+                        Prefix=paste("shared/abarenblitt/GEDI_global_PA_v2/WDPA_gedi_L4C_tiles/",iso3,"/",sep=""))
+all_gedil4c_f <- sapply(results4c$Contents, function(x) {x$Key})
+pattern=paste(".gpkg",sep="")
+all_gedil4c_f <- grep(pattern, all_gedil4c_f, value=TRUE)
+all_gedil4c_f <- basename(all_gedil4c_f)
 
 
 #---------------STEP5. GEDI PROCESSING - using GEDI shots to extract the treatment/control status, also extract the MODIS PFT for AGB prediction---------------- 
@@ -309,7 +316,7 @@ for (this_rds in matched_PAs) {
     }
     
     # Start timing for extraction
-    startTime <- Sys.time()
+    # startTime <- Sys.time()
 
 
 # Check if the "matched" data frame intersects with any of the bboxes
@@ -384,7 +391,7 @@ extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
         
     selected_columns <- c("pa_id", "status","land_cover","mangrove", "shot_number", "glad_change","glad_2020",
                       "UID","fhd_normal","pai","landsat_treecover","rh20","rh70", "rh10", "rh60","rh100",  
-                          "rh90", "rh50", "rh40", "rh98","rh80","rh30","rh25","rh75")
+                          "rh90", "rh50", "rh40", "rh98","rh80","rh30","rh25","rh75","wsci")
     # Process and select columns
     iso_matched_gedi <- iso_matched_gedi %>%
         dplyr::select(c(selected_columns, variables))
@@ -405,7 +412,7 @@ extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
     # saveRDS(iso_matched_gedi, file = paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
     #                                        "_gedi_wk_", gediwk, "_conti_", "biome_", pabiome, ".RDS", sep = ""))
     st_write(iso_matched_gedi_sf, paste(f.path3, "/WDPA_GEDI_extract/", iso3, "_pa_", id_pa, 
-                                              "_iso_matched_gedi_sub_wk_", gediwk, ".gpkg", sep = ""))
+                                              "_iso_matched_gedi_sub_wk_", gediwk, ".gpkg", sep = ""),append=FALSE)
     
     cat(id_pa, "in", iso3, "results are written to directory\n")
 }
