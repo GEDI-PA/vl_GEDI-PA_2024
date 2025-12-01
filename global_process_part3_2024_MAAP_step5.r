@@ -35,9 +35,39 @@ f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
 gedipath2 <- paste("/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/",iso3,sep="")
+# gedipath2 <- paste("s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/",iso3,sep="")
 f.path3<- file.path(out)
 
 source("matching_func_2024.r")
+
+# Add this function near the top of your script (after the source statement):
+get_matching_tile_files <- function(iso3, tile_ids) {
+  # Get files via S3 API
+  s3_results <- s3$list_objects_v2(
+    Bucket = "maap-ops-workspace", 
+    Prefix = paste0("shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/", iso3, "/")
+  )
+  
+  matching_files <- c()
+  
+  if (length(s3_results$Contents) > 0) {
+    # Extract key names and filter for GPKG files
+    all_keys <- sapply(s3_results$Contents, function(x) x$Key)
+    gpkg_files <- grep("\\.gpkg$", all_keys, value = TRUE)
+    
+    # Convert to full vsis3 paths
+    full_paths <- paste0("/vsis3/maap-ops-workspace/", gpkg_files)
+    
+    # Find files containing the tile IDs
+    for (tile_id in tile_ids) {
+      pattern <- paste0("combined_tile_", tile_id, "\\.gpkg")
+      matches <- grep(pattern, full_paths, value = TRUE)
+      matching_files <- c(matching_files, matches)
+    }
+  }
+  
+  return(matching_files)
+}
 
 cat("Step 0: Loading global variables to process country", iso3,"with GEDI data until week", gediwk, "\n")
 
@@ -264,11 +294,14 @@ for (this_rds in matched_PAs) {
     # Get just the unique IDs as a vector for further use
     unique_tile_ids <- id_extraction$unique_ids
 
-    # Get all GeoPackage files
-    gpkg_files <- list.files(gedipath2, pattern="\\.gpkg$", full.names = TRUE)
+    # # Get all GeoPackage files
+    # gpkg_files <- list.files(gedipath2, pattern="\\.gpkg$", full.names = TRUE)
 
-    # Find files containing any of our ID numbers
-    extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
+    # # Find files containing any of our ID numbers
+    # extracted <- match_files_with_numbers(gpkg_files, unique_tile_ids)
+
+    # Get matching tile files using S3 API (list.files doesn't work with vsis3)
+    extracted <- get_matching_tile_files(iso3, unique_tile_ids)
                                   
                                   
     # Extract GEDI data with error handling
