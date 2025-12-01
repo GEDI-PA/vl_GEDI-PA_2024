@@ -106,8 +106,66 @@ json_files <- tileindex_df$s3path
 # Assign to AOIs variable
 AOIs <- json_files
 
-glad_rast_2020 <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_2020.tif", sep=""))
-glad_change_rast <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_change.tif", sep=""))
+ #Call GLAD rasters from STAC once per folder
+  glad_change <- stac_to_terra(
+  catalog_url = catalog_url,
+  bbox = extent,
+  collections = "glad-glclu2020-change-v2",
+  datetime = "2020-01-01T00:00:00Z",
+         )
+
+  glad_2020 <- stac_to_terra(
+   catalog_url = catalog_url,
+   bbox = extent,
+   collections = "glad-glclu2020-v2",
+   datetime = "2020-01-01T00:00:00Z",
+            )
+
+reclass_matrix <- matrix(c(
+   0,  1,  1, 
+   2, 18, 2,
+   19, 24, 3,
+   25, 32, 4,
+   33, 42, 5,
+   43, 48, 6,
+   49,99, 99,
+   100, 101, 7,
+   102, 118, 8,
+   119, 124, 9,  
+    125, 132, 10,
+   133, 142, 11,
+   143, 148, 12,
+   149, 199, 99,
+   200, 207, 13,
+   208, 255, 99
+), ncol = 3, byrow = TRUE)
+
+glad_rast_2020 <- classify(glad_2020, reclass_matrix)
+
+reclass_matrix2 <- matrix(c(
+   0,  1,  1, 
+   2, 18, 2,
+   19, 24, 3,
+   25, 48, 4,
+   49, 72, 5,
+   73, 96, 6,
+   97,99, 99,
+   100, 101, 7,
+   102, 118, 8,
+   119, 124, 9,
+   125, 148, 10,
+   149, 172, 11,
+   173, 196, 12,
+   197, 207, 99,
+   212, 239, 99
+), ncol = 3, byrow = TRUE)
+
+glad_change_rast <- classify(glad_change, reclass_matrix2)
+
+
+                       
+# glad_rast_2020 <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_2020.tif", sep=""))
+# glad_change_rast <- rast(paste(gedipath, "WDPA_input_vars_GLOBAL/",iso3,"_glad_change.tif", sep=""))
 
 flag <- "run all"
 
