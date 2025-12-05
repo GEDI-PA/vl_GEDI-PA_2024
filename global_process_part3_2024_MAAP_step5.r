@@ -34,7 +34,7 @@ gediwk<-24
 f.path <- "s3://maap-ops-workspace/shared/leitoldv/GEDI_global_PA_v2/"
 f.path2 <- "s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/Matching_Results/"
 gedipath<- "/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/"
-gedipath2 <- paste("/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/",iso3,sep="")
+gedipath2 <- paste("/vsis3/maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C_Filtered2A/",iso3,sep="")
 # gedipath2 <- paste("s3://maap-ops-workspace/shared/abarenblitt/GEDI_global_PA_v2/WDPA_GEDI_L2AL2BL4AL4C/",iso3,sep="")
 f.path3<- file.path(out)
 
