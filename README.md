@@ -1,3 +1,16 @@
-# vl_GEDI-PA_2024
-GEDI global PA analysis v.2024
-![Global Processing Code_2024-08-27_13-30-42](https://github.com/user-attachments/assets/c00e37db-57ad-4cc6-a766-c1e1bdc2acf9)
+This repository includes notebooks used for the analysis presented in Barenblitt et al
+
+
+<img width="960" height="720" alt="Workflow" src="https://github.com/user-attachments/assets/b6fdab39-a9cd-48c5-b9f0-1eaa1e8a5fa6" />
+
+**global_process_part1_2024_MAAP_step123.R**
+Creation of matching Protected Area and Non Protected Counterfactual samples
+
+**global_process_part2_2024_MAAP_step4.R**
+Performs propensity filtering
+
+**global_process_part3_2024_MAAP_step5.R**
+Extracts GEDI data and processes over matched sampling
+
+**matching_func_2024.R**
+Source code with functions supporting all GEDI and matching processing
